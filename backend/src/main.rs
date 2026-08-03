@@ -4,64 +4,136 @@ mod error;
 mod models;
 mod routes;
 
+use std::panic;
+
 use axum::{routing::get, Router};
-use tower_http::cors::{Any, CorsLayer};
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
-    // Load .env from the backend directory
+    // ── Panic hook — don't leak stack traces over HTTP ──
+    panic::set_hook(Box::new(|info| {
+        let payload = info
+            .payload()
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| info.payload().downcast_ref::<String>().map(|s| s.as_str()))
+            .unwrap_or("unknown panic");
+        let location = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "unknown location".into());
+        tracing::error!(%payload, %location, "Panic caught");
+    }));
+
+    // ── Logging ───────────────────────────────────────
     let _ = dotenvy::dotenv();
+
+    let default_filter: String = match std::env::var("RUST_LOG") {
+        Ok(_) => "".into(), // defer to explicit RUST_LOG
+        Err(_) => {
+            let is_prod = std::env::var("ENVIRONMENT")
+                .map(|v| v == "production")
+                .unwrap_or(false);
+            if is_prod {
+                "sobrou_nada_pro_bet=info,tower_http=info".into()
+            } else {
+                "sobrou_nada_pro_bet=debug,tower_http=debug".into()
+            }
+        }
+    };
 
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "sobrou_nada_pro_bet=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| default_filter.into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Required env vars
+    // ── Env vars ──────────────────────────────────────
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set (check .env file)");
+
     if std::env::var("JWT_SECRET").is_err() {
-        tracing::warn!(
-            "JWT_SECRET not set — auth will fail. Generate one with: openssl rand -base64 32"
-        );
+        panic!("JWT_SECRET must be set. Generate one with: openssl rand -base64 32");
     }
     if std::env::var("GOOGLE_CLIENT_ID").is_err() {
-        tracing::warn!("GOOGLE_CLIENT_ID not set — Google login will fail.");
+        panic!("GOOGLE_CLIENT_ID must be set in .env");
     }
 
+    // ── Database ──────────────────────────────────────
     let pool = db::init(&database_url).await;
 
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+    // ── CORS ──────────────────────────────────────────
+    let cors = build_cors();
 
+    // ── Router ────────────────────────────────────────
     let app = Router::new()
-        // Health
         .route("/health", get(routes::health_check))
-        // Auth
         .route(
             "/api/auth/google",
             axum::routing::post(routes::google_login),
         )
         .route("/api/auth/me", get(routes::me))
-        // Bets
         .route("/api/bets", get(routes::list_bets).post(routes::create_bet))
         .route(
             "/api/bets/{id}/resolve",
             axum::routing::patch(routes::resolve_bet),
         )
-        .layer(TraceLayer::new_for_http())
+        .layer(
+            TraceLayer::new_for_http()
+                // Redact the Authorization header so tokens never appear in logs
+                .make_span_with(
+                    tower_http::trace::DefaultMakeSpan::new().level(tracing::Level::INFO),
+                )
+                .on_request(tower_http::trace::DefaultOnRequest::new().level(tracing::Level::INFO))
+                .on_response(
+                    tower_http::trace::DefaultOnResponse::new()
+                        .level(tracing::Level::INFO)
+                        .latency_unit(tower_http::LatencyUnit::Millis),
+                ),
+        )
         .layer(cors)
         .with_state(pool);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::info!("🚀 Backend running on http://localhost:3000");
+    // ── Start ─────────────────────────────────────────
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".into());
+    let addr = format!("0.0.0.0:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    tracing::info!("Listening on http://{addr}");
 
     axum::serve(listener, app).await.unwrap();
+}
+
+fn build_cors() -> CorsLayer {
+    match std::env::var("CORS_ALLOWED_ORIGINS") {
+        Ok(origins) if !origins.is_empty() => {
+            let list: Vec<_> = origins
+                .split(',')
+                .map(|s| s.trim().parse().unwrap())
+                .collect();
+            CorsLayer::new()
+                .allow_origin(list)
+                .allow_methods(Any)
+                .allow_headers(Any)
+        }
+        _ => {
+            // Dev fallback — logs a warning so you don't forget in prod
+            if std::env::var("ENVIRONMENT")
+                .map(|v| v == "production")
+                .unwrap_or(false)
+            {
+                tracing::warn!("CORS_ALLOWED_ORIGINS not set — all origins allowed");
+            }
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any)
+        }
+    }
 }
