@@ -45,8 +45,12 @@ export async function googleLogin(credential: string): Promise<unknown> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ credential }),
   });
-  if (!res.ok) throw new Error('Google login failed');
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = (data as { error?: string }).error || 'Google login failed';
+    throw new Error(msg);
+  }
+  return data;
 }
 
 export async function fetchMe(): Promise<unknown> {

@@ -7,8 +7,10 @@ interface AuthState {
   user: PublicUser | null;
   token: string | null;
   loading: boolean;
+  loginError: string | null;
   login: (credential: string) => Promise<void>;
   logout: () => void;
+  clearLoginError: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -17,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // On mount (or token change), validate the stored token
   useEffect(() => {
@@ -38,20 +41,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   const login = useCallback(async (credential: string) => {
-    const data = (await googleLogin(credential)) as AuthResponse;
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
+    setLoginError(null);
+    try {
+      const data = (await googleLogin(credential)) as AuthResponse;
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Login failed';
+      setLoginError(msg);
+    }
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setLoginError(null);
   }, []);
 
+  const clearLoginError = useCallback(() => setLoginError(null), []);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, loading, loginError, login, logout, clearLoginError }}
+    >
       {children}
     </AuthContext.Provider>
   );

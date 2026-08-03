@@ -11,7 +11,7 @@ import './App.css';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 function AppContent() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, loginError, clearLoginError, logout } = useAuth();
   const [bets, setBets] = useState<Bet[]>([]);
   const [backendStatus, setBackendStatus] = useState<string>('checking...');
 
@@ -59,6 +59,16 @@ function AppContent() {
           )}
         </div>
       </header>
+
+      {loginError && (
+        <div className="login-error-banner">
+          <span>{loginError}</span>
+          <button onClick={clearLoginError} className="banner-dismiss">
+            ×
+          </button>
+        </div>
+      )}
+
       <main>
         {user ? (
           <BetForm onBetCreated={loadBets} />

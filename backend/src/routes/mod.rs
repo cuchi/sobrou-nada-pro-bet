@@ -20,8 +20,8 @@ pub async fn health_check() -> Json<Value> {
 
 /// POST /api/auth/google
 ///
-/// Receives a Google ID token, verifies it, upserts the user,
-/// and returns a JWT session token.
+/// Receives a Google ID token, verifies it, checks the beta allowlist,
+/// upserts the user, and returns a JWT session token.
 #[tracing::instrument(skip(pool, body))]
 pub async fn google_login(
     State(pool): State<PgPool>,
@@ -77,7 +77,25 @@ pub async fn google_login(
 
     tracing::info!(%email, google_sub=%google_claims.sub, "Google user verified");
 
-    // 2. Upsert user in the database
+    // 2. Check beta allowlist
+    let is_allowed: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM beta_allowlist WHERE email = $1)")
+            .bind(&email)
+            .fetch_one(&pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to check beta allowlist: {e}");
+                AppError::Internal(format!("Database error: {e}"))
+            })?;
+
+    if !is_allowed {
+        tracing::warn!(%email, "User not on beta allowlist");
+        return Err(AppError::Forbidden(
+            "You're not on the beta list yet. This app is currently invite-only.".into(),
+        ));
+    }
+
+    // 3. Upsert user in the database
     let user: User = sqlx::query_as(
         r#"INSERT INTO users (id, username, email, google_id, avatar_url)
            VALUES (gen_random_uuid(), $1, $2, $3, $4)
@@ -100,7 +118,7 @@ pub async fn google_login(
 
     tracing::info!(user_id=%user.id, "User upserted");
 
-    // 3. Generate JWT
+    // 4. Generate JWT
     let jwt_secret = std::env::var("JWT_SECRET").map_err(|e| {
         tracing::error!("JWT_SECRET not set: {e}");
         AppError::Internal("JWT_SECRET not set".into())
@@ -110,7 +128,7 @@ pub async fn google_login(
     let claims = JwtClaims {
         sub: user.id.to_string(),
         email: email.clone(),
-        exp: now + 86400 * 7, // 7 days
+        exp: now + 86400 * 7,
         iat: now,
     };
 
