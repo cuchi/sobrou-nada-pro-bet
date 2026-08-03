@@ -70,17 +70,53 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
                   CHECK (status IN ('scheduled', 'live', 'finished', 'cancelled'))
   home_score    INT
   away_score    INT
-  raw_data      JSONB                              (full API response for flexibility)
+  raw_data      JSONB
   ```
 
 - [ ] api-futebol.com.br integration
   - API docs: https://api-futebol.com.br/documentacao
   - Endpoints needed: `GET /campeonatos/:id` (competitions), `GET /campeonatos/:id/partidas` (matches)
   - Store API key in env (`FUTEBOL_API_KEY`)
-  - Sync incoming matches → `events` table (scheduled cron or on-demand)
-- [ ] Bet types evolve: `Bet` gains `event_id FK`, optional `prediction` field (e.g. "home_win", "away_win", "draw", "over_2.5_goals")
-- [ ] Background job to auto-resolve bets when events finish (check `status = 'finished'` + `home_score`/`away_score`)
+  - Sync incoming matches to `events` table
+- [ ] Bet types evolve: `Bet` gains `event_id FK`, `prediction` field (e.g. "home_win", "away_win", "draw")
 - [ ] Show real match info next to bets: teams, score, kickoff time
+
+### Background worker
+
+A long-running Tokio task spawned at startup that runs periodic jobs:
+
+- **Every ~5 minutes**: sync match results, auto-resolve bets, send emails
+- **Idempotent** — safe to re-run, never double-resolves a bet
+- **Error-resilient** — one failure doesn't stop the loop
+- **Fully logged** — `tracing::info!` at each step for visibility
+
+```text
+Worker loop (runs every 5 min)
+  |
+  +-- 1. Sync events (api-futebol)
+  |     GET /campeonatos/:id/partidas
+  |     UPSERT into events table
+  |
+  +-- 2. Resolve bets
+  |     SELECT bets WHERE status = 'pending'
+  |       AND events.status = 'finished'
+  |     Compare prediction vs actual score
+  |     UPDATE bets.status, group_members.balance
+  |
+  +-- 3. Send emails (SendGrid)
+        For each newly-resolved bet:
+          Skip if user.email_notifications = false
+          Send transactional email with result
+```
+
+### Email notifications (SendGrid)
+
+- [ ] Add `SENDGRID_API_KEY` env var
+- [ ] Add `sendgrid` crate or use `reqwest` to their Mail Send API
+- [ ] `users` table: add `email_notifications BOOLEAN NOT NULL DEFAULT true`
+- [ ] Email content: plain-text, includes bet details, result, points change, new balance
+- [ ] Send only on bet resolution, not on creation
+- [ ] Respect the `email_notifications` opt-out flag
 
 ## Phase 5 — UI polish
 
@@ -123,7 +159,8 @@ users                        users                        users
   balance  ← dropped          email                         email
   email                       google_id                     google_id
   google_id                   avatar_url                    avatar_url
-  avatar_url
+  avatar_url                                               email_notifications ← new
+
                              groups                       groups (unchanged)
 bets                          id                          bets
   id                          name                          + event_id FK
