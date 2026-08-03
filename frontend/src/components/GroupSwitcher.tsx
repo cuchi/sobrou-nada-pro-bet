@@ -154,6 +154,13 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
         <div className="invite-link-bar">
           <code>{inviteLink}</code>
           <button onClick={() => navigator.clipboard.writeText(inviteLink)}>Copy</button>
+          <button
+            className="btn-invite-close"
+            onClick={() => setInviteLink(null)}
+            aria-label="Close"
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

@@ -260,6 +260,20 @@ header h1 {
   cursor: pointer;
 }
 
+.btn-invite-close {
+  padding: 0.15rem 0.4rem;
+  background: transparent;
+  color: #888;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btn-invite-close:hover {
+  color: #f87171;
+}
+
 /* ---- Event picker ---- */
 
 .event-picker {

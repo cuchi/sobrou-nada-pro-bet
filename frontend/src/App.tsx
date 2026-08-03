@@ -13,13 +13,39 @@ import './App.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
+function getGroupFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get('group');
+}
+
+function setGroupInUrl(groupId: string | null) {
+  const url = new URL(window.location.href);
+  if (groupId) {
+    url.searchParams.set('group', groupId);
+  } else {
+    url.searchParams.delete('group');
+  }
+  window.history.replaceState(null, '', url.toString());
+}
+
 function AppContent() {
   const { user, groups, loading, loginError, clearLoginError, logout } = useAuth();
   const [bets, setBets] = useState<Bet[]>([]);
   const [backendStatus, setBackendStatus] = useState<string>('checking...');
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(getGroupFromUrl);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+
+  // If the URL group is stale (e.g. removed membership), clear it
+  useEffect(() => {
+    if (selectedGroupId && groups.length > 0 && !selectedGroup) {
+      setSelectedGroupId(null);
+    }
+  }, [selectedGroupId, groups, selectedGroup]);
+
+  const handleGroupSelect = useCallback((id: string | null) => {
+    setSelectedGroupId(id);
+    setGroupInUrl(id);
+  }, []);
 
   const loadBets = useCallback(async () => {
     if (!user) {
@@ -77,7 +103,7 @@ function AppContent() {
       </header>
 
       {user && (
-        <GroupSwitcher selectedGroupId={selectedGroupId} onSelect={setSelectedGroupId} />
+        <GroupSwitcher selectedGroupId={selectedGroupId} onSelect={handleGroupSelect} />
       )}
 
       {loginError && (
