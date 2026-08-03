@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { googleLogin, fetchMe } from '../api/client';
-import type { AuthResponse, PublicUser } from '../types';
+import type { AuthResponse, GroupWithBalance, MeResponse, PublicUser } from '../types';
 
 interface AuthState {
   user: PublicUser | null;
   token: string | null;
+  groups: GroupWithBalance[];
   loading: boolean;
   loginError: string | null;
   login: (credential: string) => Promise<void>;
   logout: () => void;
   clearLoginError: () => void;
+  addGroup: (g: GroupWithBalance) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -18,10 +20,10 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [groups, setGroups] = useState<GroupWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // On mount (or token change), validate the stored token
   useEffect(() => {
     if (!token) {
       setLoading(false);
@@ -29,13 +31,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     fetchMe()
       .then((data) => {
-        const u = (data as { user: PublicUser }).user ?? (data as PublicUser);
-        setUser(u);
+        const resp = data as MeResponse;
+        setUser(resp.user);
+        setGroups(resp.groups);
       })
       .catch(() => {
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
+        setGroups([]);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -47,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', data.token);
       setToken(data.token);
       setUser(data.user);
+      // Groups are empty on first login — user creates/joins them later
+      setGroups([]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed';
       setLoginError(msg);
@@ -57,14 +63,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setGroups([]);
     setLoginError(null);
   }, []);
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
+  const addGroup = useCallback(
+    (g: GroupWithBalance) => setGroups((prev) => [...prev, g]),
+    [],
+  );
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, loginError, login, logout, clearLoginError }}
+      value={{ user, token, groups, loading, loginError, login, logout, clearLoginError, addGroup }}
     >
       {children}
     </AuthContext.Provider>

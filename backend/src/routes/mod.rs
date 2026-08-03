@@ -1,14 +1,22 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    Json,
+};
 use chrono::Utc;
 use jsonwebtoken::{encode, EncodingKey, Header};
+use rand::Rng;
+use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::PgPool;
+use uuid::Uuid;
 
 use crate::auth::AuthUser;
 use crate::error::AppError;
 use crate::models::{
-    AuthResponse, Bet, BetStatus, CreateBetRequest, GoogleAuthRequest, GoogleTokenClaims,
-    JwtClaims, PublicUser, User,
+    AuthResponse, Bet, BetStatus, BetWithUser, CreateBetRequest, CreateGroupRequest,
+    GoogleAuthRequest, GoogleTokenClaims, Group, GroupMember, GroupWithBalance, JwtClaims,
+    LeaderboardEntry, PublicUser, User,
 };
 
 /// GET /health
@@ -18,22 +26,17 @@ pub async fn health_check() -> Json<Value> {
 
 // ── Auth ──────────────────────────────────────────────
 
-/// POST /api/auth/google
-///
-/// Receives a Google ID token, verifies it, checks the beta allowlist,
-/// upserts the user, and returns a JWT session token.
 #[tracing::instrument(skip(pool, body))]
 pub async fn google_login(
     State(pool): State<PgPool>,
     Json(body): Json<GoogleAuthRequest>,
 ) -> Result<Json<Value>, AppError> {
-    // 1. Verify the Google ID token
     let client_id = std::env::var("GOOGLE_CLIENT_ID").map_err(|e| {
         tracing::error!("GOOGLE_CLIENT_ID not set: {e}");
         AppError::Internal("GOOGLE_CLIENT_ID not set".into())
     })?;
 
-    tracing::debug!("Calling Google tokeninfo…");
+    tracing::debug!("Calling Google tokeninfo...");
 
     let token = body.credential;
     let url = format!("https://oauth2.googleapis.com/tokeninfo?id_token={token}");
@@ -55,7 +58,6 @@ pub async fn google_login(
         AppError::Unauthorized(format!("Invalid token response: {e}"))
     })?;
 
-    // Verify audience matches our client ID
     if let Some(aud) = &google_claims.aud {
         if aud != &client_id {
             tracing::error!(expected=%client_id, got=%aud, "Token audience mismatch");
@@ -77,7 +79,7 @@ pub async fn google_login(
 
     tracing::info!(%email, google_sub=%google_claims.sub, "Google user verified");
 
-    // 2. Check beta allowlist
+    // Beta allowlist check
     let is_allowed: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM beta_allowlist WHERE email = $1)")
             .bind(&email)
@@ -95,7 +97,7 @@ pub async fn google_login(
         ));
     }
 
-    // 3. Upsert user in the database
+    // Upsert user
     let user: User = sqlx::query_as(
         r#"INSERT INTO users (id, username, email, google_id, avatar_url)
            VALUES (gen_random_uuid(), $1, $2, $3, $4)
@@ -118,7 +120,6 @@ pub async fn google_login(
 
     tracing::info!(user_id=%user.id, "User upserted");
 
-    // 4. Generate JWT
     let jwt_secret = std::env::var("JWT_SECRET").map_err(|e| {
         tracing::error!("JWT_SECRET not set: {e}");
         AppError::Internal("JWT_SECRET not set".into())
@@ -145,7 +146,7 @@ pub async fn google_login(
     })))
 }
 
-/// GET /api/auth/me — return the currently authenticated user
+/// GET /api/auth/me
 pub async fn me(
     AuthUser { id, .. }: AuthUser,
     State(pool): State<PgPool>,
@@ -157,33 +158,334 @@ pub async fn me(
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
-    Ok(Json(json!(PublicUser::from(user))))
+    let groups: Vec<GroupWithBalance> = sqlx::query_as(
+        r#"SELECT g.*, gm.balance
+           FROM groups g
+           JOIN group_members gm ON gm.group_id = g.id
+           WHERE gm.user_id = $1
+           ORDER BY g.name"#,
+    )
+    .bind(id)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(Json(json!({
+        "user": PublicUser::from(user),
+        "groups": groups,
+    })))
+}
+
+// ── Groups ────────────────────────────────────────────
+
+/// POST /api/groups — create a group (caller becomes owner + member)
+pub async fn create_group(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Json(body): Json<CreateGroupRequest>,
+) -> Result<(StatusCode, Json<Value>), AppError> {
+    let invite_code = generate_invite_code();
+
+    let group: Group = sqlx::query_as(
+        r#"INSERT INTO groups (id, name, invite_code, owner_id)
+           VALUES (gen_random_uuid(), $1, $2, $3)
+           RETURNING *"#,
+    )
+    .bind(&body.name)
+    .bind(&invite_code)
+    .bind(user_id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| AppError::Internal(format!("Failed to create group: {e}")))?;
+
+    // Auto-join as member with default balance
+    sqlx::query("INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)")
+        .bind(group.id)
+        .bind(user_id)
+        .execute(&pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to join group: {e}")))?;
+
+    tracing::info!(%group.id, %group.name, "Group created");
+
+    Ok((StatusCode::CREATED, Json(json!(group))))
+}
+
+/// GET /api/groups — list groups the user belongs to
+pub async fn list_my_groups(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+) -> Result<Json<Value>, AppError> {
+    let groups: Vec<GroupWithBalance> = sqlx::query_as(
+        r#"SELECT g.*, gm.balance
+           FROM groups g
+           JOIN group_members gm ON gm.group_id = g.id
+           WHERE gm.user_id = $1
+           ORDER BY g.name"#,
+    )
+    .bind(user_id)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(Json(json!(groups)))
+}
+
+/// GET /api/groups/:id — group details with members
+pub async fn get_group(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Value>, AppError> {
+    // Ensure caller is a member
+    let _: GroupMember =
+        sqlx::query_as("SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2")
+            .bind(group_id)
+            .bind(user_id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound("Group not found or you're not a member".into()))?;
+
+    let group: Group = sqlx::query_as("SELECT * FROM groups WHERE id = $1")
+        .bind(group_id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound("Group not found".into()))?;
+
+    let members: Vec<GroupMember> =
+        sqlx::query_as("SELECT * FROM group_members WHERE group_id = $1 ORDER BY joined_at")
+            .bind(group_id)
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(Json(json!({ "group": group, "members": members })))
+}
+
+/// GET /api/groups/:id/invite — get invite code (owner only)
+pub async fn get_invite(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Value>, AppError> {
+    let group: Group = sqlx::query_as("SELECT * FROM groups WHERE id = $1")
+        .bind(group_id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound("Group not found".into()))?;
+
+    if group.owner_id != user_id {
+        return Err(AppError::Forbidden(
+            "Only the group owner can view the invite code".into(),
+        ));
+    }
+
+    Ok(Json(json!({ "invite_code": group.invite_code })))
+}
+
+/// POST /api/groups/:id/regenerate-invite — rotate invite code (owner only)
+pub async fn regenerate_invite(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Value>, AppError> {
+    let group: Group = sqlx::query_as("SELECT * FROM groups WHERE id = $1")
+        .bind(group_id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound("Group not found".into()))?;
+
+    if group.owner_id != user_id {
+        return Err(AppError::Forbidden(
+            "Only the group owner can regenerate the invite code".into(),
+        ));
+    }
+
+    let new_code = generate_invite_code();
+    sqlx::query("UPDATE groups SET invite_code = $1 WHERE id = $2")
+        .bind(&new_code)
+        .bind(group_id)
+        .execute(&pool)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(Json(json!({ "invite_code": new_code })))
+}
+
+/// POST /api/groups/join/:invite_code — join a group by invite code
+pub async fn join_group(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Path(invite_code): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    let group: Group = sqlx::query_as("SELECT * FROM groups WHERE invite_code = $1")
+        .bind(&invite_code)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound("Invalid invite code".into()))?;
+
+    // Check not already a member
+    let already: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2)",
+    )
+    .bind(group.id)
+    .bind(user_id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    if already {
+        return Err(AppError::BadRequest("You're already in this group".into()));
+    }
+
+    sqlx::query("INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)")
+        .bind(group.id)
+        .bind(user_id)
+        .execute(&pool)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    tracing::info!(%group.id, %user_id, "User joined group");
+
+    Ok(Json(json!({ "group": group })))
+}
+
+/// GET /api/groups/:id/leaderboard
+pub async fn leaderboard(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Path(group_id): Path<Uuid>,
+) -> Result<Json<Value>, AppError> {
+    // Ensure caller is a member
+    let _: GroupMember =
+        sqlx::query_as("SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2")
+            .bind(group_id)
+            .bind(user_id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound("Group not found or you're not a member".into()))?;
+
+    let entries: Vec<LeaderboardEntry> = sqlx::query_as(
+        r#"SELECT u.id AS user_id, COALESCE(u.username, u.email) AS name,
+                  u.email, u.avatar_url, gm.balance
+           FROM group_members gm
+           JOIN users u ON u.id = gm.user_id
+           WHERE gm.group_id = $1
+           ORDER BY gm.balance DESC"#,
+    )
+    .bind(group_id)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(Json(json!(entries)))
 }
 
 // ── Bets ──────────────────────────────────────────────
 
-/// GET /api/bets — list all bets ordered by most recent first
-pub async fn list_bets(State(pool): State<PgPool>) -> Result<Json<Value>, AppError> {
-    let bets: Vec<Bet> = sqlx::query_as("SELECT * FROM bets ORDER BY created_at DESC")
-        .fetch_all(&pool)
+#[derive(Deserialize)]
+pub struct ListBetsQuery {
+    group_id: Option<Uuid>,
+}
+
+/// GET /api/bets — list bets from the user's groups (authenticated)
+pub async fn list_bets(
+    AuthUser { id: user_id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Query(query): Query<ListBetsQuery>,
+) -> Result<Json<Value>, AppError> {
+    let bets: Vec<BetWithUser> = if let Some(group_id) = query.group_id {
+        let is_member: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2)",
+        )
+        .bind(group_id)
+        .bind(user_id)
+        .fetch_one(&pool)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        if !is_member {
+            return Err(AppError::Forbidden(
+                "You're not a member of this group".into(),
+            ));
+        }
+
+        sqlx::query_as(
+            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email
+               FROM bets b
+               JOIN users u ON u.id = b.user_id
+               WHERE b.group_id = $1
+               ORDER BY b.created_at DESC"#,
+        )
+        .bind(group_id)
+        .fetch_all(&pool)
+        .await
+    } else {
+        sqlx::query_as(
+            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email
+               FROM bets b
+               JOIN group_members gm ON gm.group_id = b.group_id
+               JOIN users u ON u.id = b.user_id
+               WHERE gm.user_id = $1
+               ORDER BY b.created_at DESC"#,
+        )
+        .bind(user_id)
+        .fetch_all(&pool)
+        .await
+    }
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok(Json(json!(bets)))
 }
 
-/// POST /api/bets — create a new bet (authenticated)
+/// POST /api/bets — create a bet (authenticated, group-scoped, deducts balance)
 pub async fn create_bet(
     AuthUser { id: user_id, .. }: AuthUser,
     State(pool): State<PgPool>,
     Json(payload): Json<CreateBetRequest>,
 ) -> Result<(StatusCode, Json<Value>), AppError> {
+    // Validate membership and check balance
+    let member: GroupMember =
+        sqlx::query_as("SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2")
+            .bind(payload.group_id)
+            .bind(user_id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+            .ok_or_else(|| AppError::BadRequest("You're not a member of this group".into()))?;
+
+    if member.balance < payload.amount {
+        return Err(AppError::BadRequest(format!(
+            "Insufficient balance. You have {:.0} points, bet is {:.0}.",
+            member.balance, payload.amount
+        )));
+    }
+
+    // Deduct points
+    sqlx::query(
+        "UPDATE group_members SET balance = balance - $1 WHERE group_id = $2 AND user_id = $3",
+    )
+    .bind(payload.amount)
+    .bind(payload.group_id)
+    .bind(user_id)
+    .execute(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    // Create bet
     let bet: Bet = sqlx::query_as(
-        "INSERT INTO bets (id, user_id, amount, odds)
-         VALUES (gen_random_uuid(), $1, $2, $3)
+        "INSERT INTO bets (id, user_id, group_id, amount, odds)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4)
          RETURNING *",
     )
     .bind(user_id)
+    .bind(payload.group_id)
     .bind(payload.amount)
     .bind(payload.odds)
     .fetch_one(&pool)
@@ -193,11 +495,11 @@ pub async fn create_bet(
     Ok((StatusCode::CREATED, Json(json!(bet))))
 }
 
-/// PATCH /api/bets/:id/resolve — resolve a bet as Won or Lost (authenticated)
+/// PATCH /api/bets/:id/resolve — resolve a bet and update group balance
 pub async fn resolve_bet(
     _auth: AuthUser,
     State(pool): State<PgPool>,
-    axum::extract::Path(id): axum::extract::Path<uuid::Uuid>,
+    Path(id): Path<Uuid>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<Json<Value>, AppError> {
     let status_str = body
@@ -215,15 +517,117 @@ pub async fn resolve_bet(
         }
     };
 
-    let bet: Option<Bet> = sqlx::query_as("UPDATE bets SET status = $1 WHERE id = $2 RETURNING *")
-        .bind(&new_status)
+    let bet: Bet = sqlx::query_as("SELECT * FROM bets WHERE id = $1")
         .bind(id)
         .fetch_optional(&pool)
         .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound(format!("Bet {id} not found")))?;
+
+    if bet.status != BetStatus::Pending {
+        return Err(AppError::BadRequest("Bet is already resolved".into()));
+    }
+
+    // Update bet status
+    let bet: Bet = sqlx::query_as("UPDATE bets SET status = $1 WHERE id = $2 RETURNING *")
+        .bind(&new_status)
+        .bind(id)
+        .fetch_one(&pool)
+        .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
-    match bet {
-        Some(b) => Ok(Json(json!(b))),
-        None => Err(AppError::NotFound(format!("Bet {id} not found"))),
+    // Update group balance (payout = amount * odds if won)
+    if new_status == BetStatus::Won {
+        let payout = bet.amount * bet.odds;
+        if let Some(group_id) = bet.group_id {
+            sqlx::query(
+                "UPDATE group_members SET balance = balance + $1 WHERE group_id = $2 AND user_id = $3",
+            )
+            .bind(payout)
+            .bind(group_id)
+            .bind(bet.user_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
     }
+
+    Ok(Json(json!(bet)))
+}
+
+// ── Dev only ──────────────────────────────────────────
+
+/// POST /api/dev/login — creates a random test user and returns a JWT.
+/// Only works when ENVIRONMENT is not "production".
+pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppError> {
+    let is_prod = std::env::var("ENVIRONMENT")
+        .map(|v| v == "production")
+        .unwrap_or(false);
+
+    if is_prod {
+        return Err(AppError::NotFound("Not found".into()));
+    }
+
+    let random_id = Uuid::new_v4();
+    let email = format!("test-{random_id}@dev.local");
+
+    // Ensure the email is in the beta allowlist
+    sqlx::query("INSERT INTO beta_allowlist (email) VALUES ($1) ON CONFLICT DO NOTHING")
+        .bind(&email)
+        .execute(&pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+    // Upsert the test user
+    let user: User = sqlx::query_as(
+        r#"INSERT INTO users (id, username, email, google_id, avatar_url)
+               VALUES (gen_random_uuid(), $1, $2, $3, $4)
+               ON CONFLICT (google_id) DO NOTHING
+               RETURNING *"#,
+    )
+    .bind(&format!("Tester {random_id}"))
+    .bind(&email)
+    .bind(&random_id.to_string())
+    .bind::<Option<String>>(None)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+    // Generate JWT
+    let jwt_secret = std::env::var("JWT_SECRET").map_err(|e| {
+        tracing::error!("JWT_SECRET not set: {e}");
+        AppError::Internal("JWT_SECRET not set".into())
+    })?;
+
+    let now = Utc::now().timestamp() as usize;
+    let claims = JwtClaims {
+        sub: user.id.to_string(),
+        email: email.clone(),
+        exp: now + 86400 * 7,
+        iat: now,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(jwt_secret.as_bytes()),
+    )
+    .map_err(|e| AppError::Internal(format!("JWT encoding error: {e}")))?;
+
+    tracing::info!(%email, user_id=%user.id, "Dev user logged in");
+
+    Ok(Json(json!(AuthResponse {
+        token,
+        user: PublicUser::from(user),
+    })))
+}
+
+// ── Helpers ───────────────────────────────────────────
+
+fn generate_invite_code() -> String {
+    let chars: Vec<char> = "abcdefghijklmnopqrstuvwxyz0123456789".chars().collect();
+    let mut rng = rand::thread_rng();
+    (0..8)
+        .map(|_| chars[rng.gen_range(0..chars.len())])
+        .collect()
 }

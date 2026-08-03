@@ -15,7 +15,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
-    // ── Panic hook — don't leak stack traces over HTTP ──
     panic::set_hook(Box::new(|info| {
         let payload = info
             .payload()
@@ -30,11 +29,10 @@ async fn main() {
         tracing::error!(%payload, %location, "Panic caught");
     }));
 
-    // ── Logging ───────────────────────────────────────
     let _ = dotenvy::dotenv();
 
     let default_filter: String = match std::env::var("RUST_LOG") {
-        Ok(_) => "".into(), // defer to explicit RUST_LOG
+        Ok(_) => "".into(),
         Err(_) => {
             let is_prod = std::env::var("ENVIRONMENT")
                 .map(|v| v == "production")
@@ -55,7 +53,6 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // ── Env vars ──────────────────────────────────────
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set (check .env file)");
 
@@ -66,13 +63,9 @@ async fn main() {
         panic!("GOOGLE_CLIENT_ID must be set in .env");
     }
 
-    // ── Database ──────────────────────────────────────
     let pool = db::init(&database_url).await;
-
-    // ── CORS ──────────────────────────────────────────
     let cors = build_cors();
 
-    // ── Router ────────────────────────────────────────
     let app = Router::new()
         .route("/health", get(routes::health_check))
         .route(
@@ -80,6 +73,21 @@ async fn main() {
             axum::routing::post(routes::google_login),
         )
         .route("/api/auth/me", get(routes::me))
+        .route("/api/dev/login", axum::routing::post(routes::dev_login))
+        .route(
+            "/api/groups",
+            get(routes::list_my_groups).post(routes::create_group),
+        )
+        .route("/api/groups/{id}", get(routes::get_group))
+        .route(
+            "/api/groups/{id}/invite",
+            get(routes::get_invite).post(routes::regenerate_invite),
+        )
+        .route(
+            "/api/groups/join/{code}",
+            axum::routing::post(routes::join_group),
+        )
+        .route("/api/groups/{id}/leaderboard", get(routes::leaderboard))
         .route("/api/bets", get(routes::list_bets).post(routes::create_bet))
         .route(
             "/api/bets/{id}/resolve",
@@ -87,7 +95,6 @@ async fn main() {
         )
         .layer(
             TraceLayer::new_for_http()
-                // Redact the Authorization header so tokens never appear in logs
                 .make_span_with(
                     tower_http::trace::DefaultMakeSpan::new().level(tracing::Level::INFO),
                 )
@@ -101,7 +108,6 @@ async fn main() {
         .layer(cors)
         .with_state(pool);
 
-    // ── Start ─────────────────────────────────────────
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".into());
     let addr = format!("0.0.0.0:{port}");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -123,7 +129,6 @@ fn build_cors() -> CorsLayer {
                 .allow_headers(Any)
         }
         _ => {
-            // Dev fallback — logs a warning so you don't forget in prod
             if std::env::var("ENVIRONMENT")
                 .map(|v| v == "production")
                 .unwrap_or(false)

@@ -11,7 +11,6 @@ pub struct User {
     pub username: Option<String>,
     pub email: Option<String>,
     pub google_id: Option<String>,
-    pub balance: f64,
     pub avatar_url: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -21,7 +20,6 @@ pub struct PublicUser {
     pub id: Uuid,
     pub name: String,
     pub email: String,
-    pub balance: f64,
     pub avatar_url: Option<String>,
 }
 
@@ -33,10 +31,66 @@ impl From<User> for PublicUser {
                 .username
                 .unwrap_or_else(|| u.email.clone().unwrap_or_default()),
             email: u.email.unwrap_or_default(),
-            balance: u.balance,
             avatar_url: u.avatar_url,
         }
     }
+}
+
+// ── Group ─────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Group {
+    pub id: Uuid,
+    pub name: String,
+    pub invite_code: String,
+    pub owner_id: Uuid,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GroupWithBalance {
+    #[serde(flatten)]
+    pub group: Group,
+    pub balance: f64,
+}
+
+impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for GroupWithBalance {
+    fn from_row(row: &'r sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
+        use sqlx::Row;
+        let group = Group {
+            id: row.try_get("id")?,
+            name: row.try_get("name")?,
+            invite_code: row.try_get("invite_code")?,
+            owner_id: row.try_get("owner_id")?,
+            created_at: row.try_get("created_at")?,
+        };
+        Ok(GroupWithBalance {
+            group,
+            balance: row.try_get("balance")?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct GroupMember {
+    pub group_id: Uuid,
+    pub user_id: Uuid,
+    pub balance: f64,
+    pub joined_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct LeaderboardEntry {
+    pub user_id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub avatar_url: Option<String>,
+    pub balance: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateGroupRequest {
+    pub name: String,
 }
 
 // ── Bet ───────────────────────────────────────────────
@@ -54,6 +108,7 @@ pub enum BetStatus {
 pub struct Bet {
     pub id: Uuid,
     pub user_id: Uuid,
+    pub group_id: Option<Uuid>,
     pub amount: f64,
     pub odds: f64,
     pub status: BetStatus,
@@ -62,8 +117,22 @@ pub struct Bet {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateBetRequest {
+    pub group_id: Uuid,
     pub amount: f64,
     pub odds: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct BetWithUser {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub group_id: Option<Uuid>,
+    pub amount: f64,
+    pub odds: f64,
+    pub status: BetStatus,
+    pub created_at: DateTime<Utc>,
+    pub user_name: String,
+    pub user_email: String,
 }
 
 // ── Auth ──────────────────────────────────────────────
@@ -91,8 +160,8 @@ pub struct AuthResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JwtClaims {
-    pub sub: String, // user id (UUID)
+    pub sub: String,
     pub email: String,
-    pub exp: usize, // expiry
-    pub iat: usize, // issued at
+    pub exp: usize,
+    pub iat: usize,
 }

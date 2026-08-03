@@ -9,34 +9,6 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
-// ── Bets ──────────────────────────────────────────────
-
-export async function fetchBets(): Promise<unknown> {
-  const res = await fetch(`${BASE}/bets`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch bets');
-  return res.json();
-}
-
-export async function createBet(req: { amount: number; odds: number }): Promise<unknown> {
-  const res = await fetch(`${BASE}/bets`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(req),
-  });
-  if (!res.ok) throw new Error('Failed to create bet');
-  return res.json();
-}
-
-export async function resolveBet(id: string, status: 'won' | 'lost'): Promise<unknown> {
-  const res = await fetch(`${BASE}/bets/${id}/resolve`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify({ status }),
-  });
-  if (!res.ok) throw new Error('Failed to resolve bet');
-  return res.json();
-}
-
 // ── Auth ──────────────────────────────────────────────
 
 export async function googleLogin(credential: string): Promise<unknown> {
@@ -53,8 +25,88 @@ export async function googleLogin(credential: string): Promise<unknown> {
   return data;
 }
 
+export async function devLogin(): Promise<unknown> {
+  const res = await fetch(`${BASE}/dev/login`, { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = (data as { error?: string }).error || 'Dev login failed';
+    throw new Error(msg);
+  }
+  return data;
+}
+
 export async function fetchMe(): Promise<unknown> {
   const res = await fetch(`${BASE}/auth/me`, { headers: authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch user');
+  return res.json();
+}
+
+// ── Bets ──────────────────────────────────────────────
+
+export async function fetchBets(groupId?: string): Promise<unknown> {
+  const url = groupId ? `${BASE}/bets?group_id=${groupId}` : `${BASE}/bets`;
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch bets');
+  return res.json();
+}
+
+export async function createBet(req: { group_id: string; amount: number; odds: number }): Promise<unknown> {
+  const res = await fetch(`${BASE}/bets`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(req),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = (data as { error?: string }).error || 'Failed to create bet';
+    throw new Error(msg);
+  }
+  return data;
+}
+
+export async function resolveBet(id: string, status: 'won' | 'lost'): Promise<unknown> {
+  const res = await fetch(`${BASE}/bets/${id}/resolve`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to resolve bet');
+  return res.json();
+}
+
+// ── Groups ────────────────────────────────────────────
+
+export async function createGroup(name: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/groups`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error('Failed to create group');
+  return res.json();
+}
+
+export async function joinGroup(inviteCode: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/groups/join/${inviteCode}`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = (data as { error?: string }).error || 'Failed to join group';
+    throw new Error(msg);
+  }
+  return data;
+}
+
+export async function getInviteCode(groupId: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/groups/${groupId}/invite`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to get invite');
+  return res.json();
+}
+
+export async function fetchLeaderboard(groupId: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/groups/${groupId}/leaderboard`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch leaderboard');
   return res.json();
 }

@@ -27,7 +27,7 @@ header {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #2a2a2a;
 }
@@ -134,6 +134,95 @@ header h1 {
   line-height: 1;
 }
 
+/* ---- Group switcher ---- */
+
+.group-switcher {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-select {
+  flex: 1 1 200px;
+  background: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #3a3a3a;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.btn-invite {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-invite:hover {
+  color: #f0c040;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.inline-form input {
+  flex: 1;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  color: #e0e0e0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.inline-form button {
+  padding: 0.5rem 0.75rem;
+  background: #f0c040;
+  color: #0f0f0f;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.invite-link-bar {
+  width: 100%;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem;
+  background: #1a1a1a;
+  border-radius: 8px;
+}
+
+.invite-link-bar code {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #aaa;
+  word-break: break-all;
+}
+
+.invite-link-bar button {
+  padding: 0.25rem 0.6rem;
+  background: #2a2a2a;
+  color: #ccc;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
 /* ---- Bet form ---- */
 
 .bet-form {
@@ -154,8 +243,22 @@ header h1 {
   margin-bottom: 0.25rem;
 }
 
+.bet-form h2 strong {
+  color: #f0c040;
+}
+
+.balance-pill {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  background: #2a2a0a;
+  color: #f0c040;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
 .bet-form input {
-  flex: 1 1 150px;
+  flex: 1 1 130px;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
   color: #e0e0e0;
@@ -191,6 +294,61 @@ header h1 {
   cursor: not-allowed;
 }
 
+.bet-error {
+  width: 100%;
+  color: #f87171;
+  font-size: 0.85rem;
+}
+
+/* ---- Leaderboard ---- */
+
+.leaderboard {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.leaderboard h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #aaa;
+}
+
+.rank-cell {
+  font-size: 1.1rem;
+  width: 3rem;
+}
+
+.podium-row {
+  background: rgba(240, 192, 64, 0.05);
+}
+
+.lb-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.lb-name {
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.balance-cell {
+  font-size: 0.95rem;
+  color: #f0c040;
+}
+
+.leaderboard-loading {
+  color: #666;
+  text-align: center;
+  padding: 2rem 0;
+}
+
 /* ---- Bet list ---- */
 
 .bet-list h2 {
@@ -216,6 +374,34 @@ th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.user-cell {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-name-cell {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.payout-cell {
+  font-weight: 600;
+}
+
+.status-pending .payout-cell {
+  color: #888;
+}
+
+.status-won .payout-cell {
+  color: #4ade80;
+}
+
+.status-lost .payout-cell {
+  color: #f87171;
 }
 
 .status-badge {
@@ -272,4 +458,16 @@ th {
   color: #666;
   text-align: center;
   padding: 3rem 0;
+}
+
+/* ---- Dev login ---- */
+
+.btn-dev-login {
+  padding: 0.5rem 1rem;
+  background: #3a2a00;
+  color: #f0c040;
+  border: 1px dashed #f0c040;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
