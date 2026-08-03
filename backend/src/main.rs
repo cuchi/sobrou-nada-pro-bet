@@ -9,6 +9,7 @@ use std::panic;
 use axum::{routing::get, Router};
 use tower_http::{
     cors::{Any, CorsLayer},
+    services::{ServeDir, ServeFile},
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -100,6 +101,9 @@ async fn main() {
         .route(
             "/api/bets/{id}/resolve",
             axum::routing::patch(routes::resolve_bet),
+        )
+        .fallback_service(
+            ServeDir::new("dist").not_found_service(ServeFile::new("dist/index.html")),
         )
         .layer(
             TraceLayer::new_for_http()
