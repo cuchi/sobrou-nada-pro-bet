@@ -8,6 +8,30 @@ Instructions for AI coding agents working on this codebase.
 
 Full-stack web application for a simple betting system. Users sign in with Google, place bets (amount + odds), and resolve them as won/lost.
 
+## Plan / Progress
+
+| Phase | Feature | Status |
+|---|---|---|
+| 1 | Auth — Google OAuth, JWT, beta allowlist | ✅ Done |
+| 2 | Groups — create, join via invite code, per-group balances | ✅ Done |
+| 3 | Events — sync from the-odds-api.com, store odds | ✅ Done |
+| 4 | Bets — place bets with locked odds, resolve manually, 1h cutoff, no duplicates | ✅ Done |
+| 4b | Admin — secret-token-protected `/admin/` endpoints for sync | ✅ Done |
+| 4c | UI polish — event cards, crests, responsive mobile layout | ✅ Done |
+| 5 | Background worker — auto-sync events periodically (Tokio task) | 🔲 Todo |
+| 6 | Auto-resolve — detect finished matches, compare prediction vs score | 🔲 Todo |
+| 7 | Email notifications — SendGrid on bet resolution | 🔲 Todo |
+| 8 | Bet history & streaks — per-user stats, activity feed | 🔲 Todo |
+| 9 | Deploy — Dockerize backend, managed Postgres, production CORS, HTTPS | 🔲 Todo |
+
+### Env vars to add for future phases
+
+```env
+SENDGRID_API_KEY=...          # For bet resolution emails (not yet used)
+ENVIRONMENT=production         # Hardens logging/CORS (already supported)
+CORS_ALLOWED_ORIGINS=...      # Required in prod (already supported)
+```
+
 ## Stack
 
 | Layer | Technology |
@@ -48,17 +72,22 @@ Full-stack web application for a simple betting system. Users sign in with Googl
         ├── main.tsx
         ├── App.tsx             # Root: providers, layout, auth gating
         ├── App.css             # Dark theme, responsive
+        ├── crests.ts           # Team name → local PNG mapping
         ├── vite-env.d.ts
         ├── types/
         │   └── index.ts        # Bet, BetStatus, PublicUser, AuthResponse, CreateBetRequest
         ├── api/
         │   └── client.ts       # fetch wrappers with auto JWT injection
         ├── context/
-        │   └── AuthContext.tsx  # useAuth(): user, login(credential), logout()
+        │   └── AuthContext.tsx  # useAuth(): user, groups, login, logout
         └── components/
-            ├── BetForm.tsx      # Amount + odds form
-            ├── BetList.tsx      # Table with win/loss resolve buttons
-            └── GoogleLoginButton.tsx
+            ├── BetForm.tsx      # Embeds EventPicker, amount input, place bet
+            ├── BetList.tsx      # Table with user names, events, predictions, resolve
+            ├── EventPicker.tsx  # Scrollable match list with crests, odds
+            ├── GroupSwitcher.tsx # Dropdown + create/join/invite buttons
+            ├── Leaderboard.tsx  # Podium + ranking table
+            ├── GoogleLoginButton.tsx
+            └── DevLoginButton.tsx
 ```
 
 ## API Endpoints
@@ -68,12 +97,23 @@ Full-stack web application for a simple betting system. Users sign in with Googl
 | GET | `/health` | No | `{"status":"ok"}` |
 | POST | `/api/auth/google` | No | Body: `{credential: "google_id_token"}` → JWT + user |
 | GET | `/api/auth/me` | Bearer | Returns current user |
-| GET | `/api/bets` | No* | List all bets (ordered by newest) |
-| POST | `/api/bets` | Bearer | Body: `{amount, odds}` → creates bet for authed user |
+| GET | `/api/groups` | Bearer | List user's groups with balances |
+| POST | `/api/groups` | Bearer | Body: `{name}` → creates a group |
+| GET | `/api/groups/:id` | Bearer | Group details + member count |
+| GET | `/api/groups/:id/invite` | Bearer | Get invite code + link |
+| POST | `/api/groups/:id/invite` | Bearer | Regenerate invite code |
+| POST | `/api/groups/join/:code` | Bearer | Join group by invite code |
+| GET | `/api/groups/:id/leaderboard` | Bearer | Ranked members by balance |
+| GET | `/api/events` | No* | List scheduled + live events |
+| GET | `/api/bets` | No* | List all bets (by group, ordered newest) |
+| POST | `/api/bets` | Bearer | Body: `{group_id, event_id, prediction, amount, odds}` → creates bet |
 | PATCH | `/api/bets/:id/resolve` | Bearer | Body: `{status: "won"|"lost"}` → resolves bet |
+| POST | `/api/dev/login` | No† | Body: `{email}` → dev-only login (creates user + allowlist) |
 | POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |
 
-\* `GET /api/bets` is intentionally public for the MVP leaderboard-style view.
+\* `GET /api/events` and `GET /api/bets` are public for the MVP.
+
+† `POST /api/dev/login` only works when `ENVIRONMENT != "production"`.
 
 ### Admin Auth
 

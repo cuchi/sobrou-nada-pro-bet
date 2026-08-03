@@ -1,10 +1,10 @@
-# PLAN.md — Next Tasks
+# PLAN.md — Sobrou Nada Pro Bet
 
 Roadmap for a cashless betting app — closed beta with friends, Brazilian football data.
 
 ---
 
-## Phase 1 — Betting core
+## Phase 1 — Core betting ✅
 
 - [x] Axum backend with Postgres
 - [x] Google OAuth login
@@ -13,76 +13,44 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 - [x] Shared bet table
 - [x] Production-safe error handling (5xx never leak)
 
-## Phase 2 — Closed beta access
+## Phase 2 — Closed beta ✅
 
-- [x] `beta_allowlist` table: `email VARCHAR(255) PRIMARY KEY`
-- [x] Seed the table with allowed emails (manual SQL)
-- [x] During `POST /api/auth/google`, after Google verification: if the email is **not** in `beta_allowlist`, return `403 Forbidden` with a friendly message
-- [x] Frontend: dismissible red banner showing the rejection reason
+- [x] `beta_allowlist` table
+- [x] 403 rejection for non-allowlisted emails
+- [x] Dismissible error banner on frontend
+- [x] Dev login button (creates user + seeds allowlist, dev-only)
 
-## Phase 3 — Groups & scoped balances (current)
+## Phase 3 — Groups & scoped balances ✅
 
-- [x] `groups` table (id, name, invite_code, owner_id, created_at)
-- [x] `group_members` table (group_id, user_id, balance, joined_at)
-- [x] Drop `balance` column from `users` (balances are now **per-group**)
-- [x] Owner-only invite management:
-  - `POST /api/groups` — create group (caller becomes owner + member with 1000 pts)
-  - `GET /api/groups` — list user's groups with balances
-  - `GET /api/groups/:id` — group details + member list
-  - `GET /api/groups/:id/invite` — get invite code (owner only)
-  - `POST /api/groups/:id/invite` — regenerate invite code (owner only)
-  - `POST /api/groups/join/:code` — join by invite code
-- [x] `bets` table gains `group_id` column
-- [x] `POST /api/bets` deducts from user's balance, validates membership
-- [x] `PATCH /api/bets/:id/resolve` credits payout (`amount × odds`) to winner's group balance
-- [x] `GET /api/bets` requires auth, scoped to user's groups (403 if not a member)
-- [x] Bet list shows user names (JOIN users table)
-- [x] Bet list shows color-coded payout column
-- [x] Leaderboard: `GET /api/groups/:id/leaderboard` → ranked by balance DESC
-- [x] Frontend: group switcher with separate +Create / +Join / Invite buttons
-- [x] Frontend: leaderboard component with 🥇🥈🥉 podium
-- [x] Frontend: Cancel buttons on create/join inline forms
-- [x] Dev-only login button (creates random test user, bypasses GCP)
+- [x] `groups` + `group_members` tables, balances per-group
+- [x] Create, join via invite code, regenerate invite
+- [x] Group-scoped bets (deduct from group balance, credit on win)
+- [x] Leaderboard per group with podium
+- [x] Group switcher frontend
 
-## Phase 4 — Real events (api-futebol.com.br)
+## Phase 4 — Real events & bets ✅
 
-- [ ] `events` table — mirrors the external API
+- [x] `events` table with external_id, teams, start_time, status, scores, odds
+- [x] the-odds-api.com v4 integration (`soccer_brazil_campeonato`)
+- [x] Admin sync endpoint (`POST /admin/events/sync`, secret token auth)
+- [x] Bets gain `event_id`, `prediction` (home_win / draw / away_win)
+- [x] Odds locked from API (user cannot edit)
+- [x] 1-hour cutoff before kickoff (server-enforced)
+- [x] No duplicate bets on same event/user/group
+- [x] Event picker UI with team crests (48px PNG, transparent BG)
+- [x] Responsive event cards (white, grid layout, crests-only on mobile)
+- [x] Two-line date/time in event cards
+- [x] Prediction buttons with team name + odds on separate lines
 
-  ```
-  id            UUID PRIMARY KEY
-  external_id   VARCHAR(100) UNIQUE NOT NULL   (api-futebol match ID)
-  home_team     VARCHAR(200) NOT NULL
-  away_team     VARCHAR(200) NOT NULL
-  start_time    TIMESTAMPTZ NOT NULL
-  status        VARCHAR(20) NOT NULL DEFAULT 'scheduled'
-                  CHECK (status IN ('scheduled', 'live', 'finished', 'cancelled'))
-  home_score    INT
-  away_score    INT
-  raw_data      JSONB
-  ```
+## Phase 5 — Background worker 🔲
 
-- [ ] api-futebol.com.br integration
-  - API docs: https://api-futebol.com.br/documentacao
-  - Endpoints needed: `GET /campeonatos/:id` (competitions), `GET /campeonatos/:id/partidas` (matches)
-  - Store API key in env (`FUTEBOL_API_KEY`)
-  - Sync incoming matches to `events` table
-- [ ] Bet types evolve: `Bet` gains `event_id FK`, `prediction` field (e.g. "home_win", "away_win", "draw")
-- [ ] Show real match info next to bets: teams, score, kickoff time
-
-### Background worker
-
-A long-running Tokio task spawned at startup that runs periodic jobs:
-
-- **Every ~5 minutes**: sync match results, auto-resolve bets, send emails
-- **Idempotent** — safe to re-run, never double-resolves a bet
-- **Error-resilient** — one failure doesn't stop the loop
-- **Fully logged** — `tracing::info!` at each step for visibility
+A long-running Tokio task spawned at startup:
 
 ```text
-Worker loop (runs every 5 min)
+Worker loop (runs every ~5 min)
   |
-  +-- 1. Sync events (api-futebol)
-  |     GET /campeonatos/:id/partidas
+  +-- 1. Sync events (the-odds-api.com)
+  |     POST /admin/events/sync equivalent, in-process
   |     UPSERT into events table
   |
   +-- 2. Resolve bets
@@ -97,61 +65,99 @@ Worker loop (runs every 5 min)
           Send transactional email with result
 ```
 
-### Email notifications (SendGrid)
+- **Idempotent** — safe to re-run
+- **Error-resilient** — one failure doesn't stop the loop
+- **Fully logged** — `tracing::info!` at each step
 
-- [ ] Add `SENDGRID_API_KEY` env var
-- [ ] Add `sendgrid` crate or use `reqwest` to their Mail Send API
-- [ ] `users` table: add `email_notifications BOOLEAN NOT NULL DEFAULT true`
-- [ ] Email content: plain-text, includes bet details, result, points change, new balance
-- [ ] Send only on bet resolution, not on creation
-- [ ] Respect the `email_notifications` opt-out flag
+### Env vars needed
 
-## Phase 5 — UI polish
+```env
+SENDGRID_API_KEY=...   # Not yet used
+```
 
-- [x] Show user name next to each bet in the table
-- [x] Leaderboard with top-3 podium per group
-- [ ] Event picker: browse upcoming matches, select one, place a prediction bet
+### Migration needed
+
+```sql
+ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
+```
+
+## Phase 6 — Auto-resolve 🔲
+
+- Detect finished matches from the-odds-api.com (or by comparing `start_time` to now)
+- Compare `bet.prediction` vs actual score
+- Auto-update bet status + group member balances
+- Handle edge cases: cancelled matches, ties with no draw prediction
+
+## Phase 7 — UI polish (remaining) 🔲
+
 - [ ] Bet history with win/loss streaks per user
-- [ ] Mobile-responsive layout (current dark theme is a good start)
 - [ ] Activity feed: "Alice just won 200 pts on Flamengo vs Palmeiras"
+- [ ] Odds column: only show odds, not editable
 
-## Phase 6 — Production deployment
+## Phase 8 — Production deployment 🔲
 
 - [ ] Dockerize the backend (multi-stage Rust build)
 - [ ] Serve frontend via Nginx or embed in Rust binary
 - [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Managed Postgres (e.g. Neon, Supabase, Railway)
+- [ ] Managed Postgres (Neon, Supabase, or Railway)
 - [ ] Custom domain + HTTPS
+- [ ] Set `ENVIRONMENT=production` + `CORS_ALLOWED_ORIGINS`
 - [ ] Rate limiting on auth endpoints
 
 ---
 
-## Schema evolution summary
+## Schema (current)
 
 ```
-Phase 1                   Phase 3 (current)          Phase 4
-───────                   ─────────────────          ───────
-users                     users                      users
-  id                        id                          id
-  username                  username                    username
-  balance  ← dropped        email                       email
-  email                     google_id                   google_id
-  google_id                 avatar_url                  avatar_url
-  avatar_url                                            email_notifications ← new
+users                         groups
+  id                            id
+  username                      name
+  email                         invite_code
+  google_id                     owner_id FK
+  avatar_url                    created_at
 
-                          groups                     groups (unchanged)
-bets                        id                        bets
-  id                        name                        + event_id FK
-  user_id                   invite_code                 + prediction
-  amount                    owner_id FK
-  odds                                                 events
-  status                   group_members                 id
-                             group_id FK                 external_id
-                             user_id FK                  home_team
-                             balance                     away_team
-                             joined_at                   start_time
-                                                        status
-                          bets                          home_score
-                            + group_id FK               away_score
-                                                        raw_data
+beta_allowlist                group_members
+  email                         group_id FK
+  added_at                      user_id FK
+                                balance
+bets                            joined_at
+  id
+  user_id FK                  events
+  group_id FK                   id
+  event_id FK                   external_id
+  prediction                    home_team
+  amount                        away_team
+  odds                          championship
+  status                        start_time
+  created_at                    status
+                                home_score
+                                away_score
+                                home_odds
+                                draw_odds
+                                away_odds
+                                raw_data
+                                created_at
 ```
+
+## API Endpoints
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/health` | No | `{"status":"ok"}` |
+| POST | `/api/auth/google` | No | Google ID token → JWT |
+| GET | `/api/auth/me` | Bearer | Current user |
+| POST | `/api/dev/login` | No† | Dev-only login |
+| GET | `/api/groups` | Bearer | List groups with balances |
+| POST | `/api/groups` | Bearer | Create group |
+| GET | `/api/groups/:id` | Bearer | Group details |
+| GET | `/api/groups/:id/invite` | Bearer | Get invite code |
+| POST | `/api/groups/:id/invite` | Bearer | Regenerate invite |
+| POST | `/api/groups/join/:code` | Bearer | Join by code |
+| GET | `/api/groups/:id/leaderboard` | Bearer | Ranked members |
+| GET | `/api/events` | No* | Scheduled + live events |
+| GET | `/api/bets` | No* | List bets (by group) |
+| POST | `/api/bets` | Bearer | Create bet |
+| PATCH | `/api/bets/:id/resolve` | Bearer | Resolve bet |
+| POST | `/admin/events/sync` | Admin | Sync from the-odds-api.com |
+
+\* Public for MVP. † Only in non-production.
