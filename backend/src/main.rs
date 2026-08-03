@@ -62,6 +62,9 @@ async fn main() {
     if std::env::var("GOOGLE_CLIENT_ID").is_err() {
         panic!("GOOGLE_CLIENT_ID must be set in .env");
     }
+    if std::env::var("ADMIN_TOKEN").is_err() {
+        panic!("ADMIN_TOKEN must be set. Generate one with: openssl rand -base64 32");
+    }
 
     let pool = db::init(&database_url).await;
     let cors = build_cors();
@@ -89,7 +92,10 @@ async fn main() {
         )
         .route("/api/groups/{id}/leaderboard", get(routes::leaderboard))
         .route("/api/events", get(routes::list_events))
-        .route("/api/events/sync", axum::routing::post(routes::sync_events))
+        .route(
+            "/admin/events/sync",
+            axum::routing::post(routes::admin::sync_events),
+        )
         .route("/api/bets", get(routes::list_bets).post(routes::create_bet))
         .route(
             "/api/bets/{id}/resolve",

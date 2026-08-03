@@ -11,6 +11,8 @@ use serde_json::{json, Value};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+pub mod admin;
+
 use crate::auth::AuthUser;
 use crate::error::AppError;
 use crate::models::{
@@ -418,128 +420,6 @@ pub async fn list_events(
     Ok(Json(json!(events)))
 }
 
-/// POST /api/events/sync — sync upcoming fixtures from footballdata.io
-#[tracing::instrument(skip(pool))]
-pub async fn sync_events(
-    _auth: AuthUser,
-    State(pool): State<PgPool>,
-) -> Result<Json<Value>, AppError> {
-    let api_key = std::env::var("FOOTBALLDATA_API_KEY")
-        .map_err(|_| AppError::Internal("FOOTBALLDATA_API_KEY not set".into()))?;
-
-    let client = reqwest::Client::new();
-
-    let resp = client
-        .get("https://footballdata.io/api/v1/fixtures/upcoming")
-        .header("Authorization", format!("Bearer {api_key}"))
-        .send()
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to fetch fixtures: {e}");
-            AppError::Internal(format!("Failed to fetch fixtures: {e}"))
-        })?;
-
-    let raw: serde_json::Value = resp.json().await.map_err(|e| {
-        tracing::error!("Failed to parse API response: {e}");
-        AppError::Internal(format!("Failed to parse events: {e}"))
-    })?;
-
-    let mut inserted = 0;
-    let empty_vec = vec![];
-    let matches = raw["data"]["matches"].as_array().unwrap_or(&empty_vec);
-
-    // Filter to Brasileirão and Catarinense only
-    let matches: Vec<&serde_json::Value> = matches
-        .iter()
-        .filter(|m| {
-            let name = m["league"]["name"].as_str().unwrap_or("").to_lowercase();
-            name.contains("brasileir") || name.contains("catarinense")
-        })
-        .collect();
-
-    for m in &matches {
-        let external_id = m["match_id"]
-            .as_i64()
-            .map(|i| i.to_string())
-            .unwrap_or_default();
-        if external_id.is_empty() {
-            continue;
-        }
-
-        let home_team = m["home_team"]["team_name"].as_str().unwrap_or("TBD");
-        let away_team = m["away_team"]["team_name"].as_str().unwrap_or("TBD");
-        let championship = m["league"]["name"].as_str().unwrap_or("Unknown");
-
-        // match_date format: "2026-08-04 16:00:00"
-        let start_time_str = m["match_date"].as_str().unwrap_or("");
-        let start_time = chrono::NaiveDateTime::parse_from_str(start_time_str, "%Y-%m-%d %H:%M:%S")
-            .map(|dt| dt.and_utc())
-            .unwrap_or_else(|_| Utc::now());
-
-        let status = match m["status"].as_str().unwrap_or("incomplete") {
-            "incomplete" => "scheduled",
-            "live" => "live",
-            "finished" | "complete" => "finished",
-            "cancelled" | "postponed" => "cancelled",
-            _ => "scheduled",
-        };
-
-        let home_score = m["score"]["home"].as_i64().map(|s| s as i32);
-        let away_score = m["score"]["away"].as_i64().map(|s| s as i32);
-
-        let home_odds = m["odds"]["home_win"].as_f64();
-        let draw_odds = m["odds"]["draw"].as_f64();
-        let away_odds = m["odds"]["away_win"].as_f64();
-
-        let result = sqlx::query(
-            r#"INSERT INTO events (external_id, home_team, away_team, championship, start_time, status, home_score, away_score, home_odds, draw_odds, away_odds, raw_data)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-               ON CONFLICT (external_id) DO UPDATE SET
-                   status = EXCLUDED.status,
-                   home_score = EXCLUDED.home_score,
-                   away_score = EXCLUDED.away_score,
-                   home_odds = EXCLUDED.home_odds,
-                   draw_odds = EXCLUDED.draw_odds,
-                   away_odds = EXCLUDED.away_odds,
-                   start_time = EXCLUDED.start_time,
-                   raw_data = EXCLUDED.raw_data"#,
-        )
-        .bind(&external_id)
-        .bind(home_team)
-        .bind(away_team)
-        .bind(championship)
-        .bind(start_time)
-        .bind(status)
-        .bind(home_score)
-        .bind(away_score)
-        .bind(home_odds)
-        .bind(draw_odds)
-        .bind(away_odds)
-        .bind(Some((*m).clone()))
-        .execute(&pool)
-        .await;
-
-        if let Ok(r) = result {
-            inserted += r.rows_affected() as usize;
-        }
-    }
-
-    let total_fetched = raw["data"]["matches"]
-        .as_array()
-        .unwrap_or(&empty_vec)
-        .len();
-    tracing::info!(
-        inserted,
-        filtered = matches.len(),
-        total_fetched,
-        "Fixtures synced"
-    );
-
-    Ok(Json(
-        json!({ "inserted": inserted, "filtered": matches.len(), "total_fetched": total_fetched }),
-    ))
-}
-
 // ── Bets ──────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -622,6 +502,39 @@ pub async fn create_bet(
             "Insufficient balance. You have {:.0} points, bet is {:.0}.",
             member.balance, payload.amount
         )));
+    }
+
+    // Check for duplicate bet on same event
+    let already_bet: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM bets WHERE user_id = $1 AND group_id = $2 AND event_id = $3 AND status = 'pending')",
+    )
+    .bind(user_id)
+    .bind(payload.group_id)
+    .bind(payload.event_id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    if already_bet {
+        return Err(AppError::BadRequest(
+            "You already have a pending bet on this event".into(),
+        ));
+    }
+
+    // Check event starts at least 1 hour from now
+    let event_start: chrono::DateTime<Utc> =
+        sqlx::query_scalar("SELECT start_time FROM events WHERE id = $1")
+            .bind(payload.event_id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+            .ok_or_else(|| AppError::BadRequest("Event not found".into()))?;
+
+    let cutoff = Utc::now() + chrono::Duration::hours(1);
+    if event_start < cutoff {
+        return Err(AppError::BadRequest(
+            "Bets close 1 hour before kickoff".into(),
+        ));
     }
 
     // Deduct points

@@ -36,7 +36,8 @@ Full-stack web application for a simple betting system. Users sign in with Googl
 │       ├── models.rs           # User, Bet, BetStatus, JWT claims, Google payloads
 │       ├── auth.rs             # AuthUser extractor (Bearer → JWT decode → user ID)
 │       └── routes/
-│           └── mod.rs          # All route handlers
+│           ├── mod.rs          # Public + authed route handlers
+│           └── admin.rs        # Admin endpoints (secret token auth)
 └── frontend/
     ├── package.json
     ├── tsconfig.json / .app.json / .node.json
@@ -70,8 +71,15 @@ Full-stack web application for a simple betting system. Users sign in with Googl
 | GET | `/api/bets` | No* | List all bets (ordered by newest) |
 | POST | `/api/bets` | Bearer | Body: `{amount, odds}` → creates bet for authed user |
 | PATCH | `/api/bets/:id/resolve` | Bearer | Body: `{status: "won"|"lost"}` → resolves bet |
+| POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |
 
 \* `GET /api/bets` is intentionally public for the MVP leaderboard-style view.
+
+### Admin Auth
+
+Admin endpoints use a secret token passed via the `X-Admin-Token` header (not JWT). The `AdminAuth` extractor in `routes/admin.rs` validates it against the `ADMIN_TOKEN` env var:
+- Missing header → 401
+- Wrong token → 403
 
 ## Auth Flow
 
@@ -91,7 +99,7 @@ docker-compose up -d
 
 # Terminal 2 — Backend
 cd backend
-cp .env.example .env          # Fill in GOOGLE_CLIENT_ID and JWT_SECRET
+cp .env.example .env          # Fill in GOOGLE_CLIENT_ID, JWT_SECRET, ADMIN_TOKEN, ODDS_API_KEY
 cargo run                      # http://localhost:3000
 
 # Terminal 3 — Frontend
@@ -112,6 +120,8 @@ Migrations run automatically on backend startup.
 | `DATABASE_URL` | Yes | — | Postgres connection string |
 | `GOOGLE_CLIENT_ID` | Yes | — | From GCP → Credentials → OAuth 2.0 Client ID |
 | `JWT_SECRET` | Yes | — | Random base64 string (`openssl rand -base64 32`) |
+| `ADMIN_TOKEN` | Yes | — | Random base64 string (`openssl rand -base64 32`) |
+| `ODDS_API_KEY` | Yes | — | API key from the-odds-api.com |
 | `ENVIRONMENT` | No | `development` | Set to `production` to harden logging/CORS |
 | `CORS_ALLOWED_ORIGINS` | No | `*` (dev) | Comma-separated origins (required in prod) |
 | `PORT` | No | `3000` | HTTP listen port |
@@ -133,11 +143,12 @@ Migrations run automatically on backend startup.
 
 ## Code Conventions
 
-- **Backend:** Standard Rust 2021. Modules: `models`, `routes`, `auth`, `error`, `db`. Routes are in `routes/mod.rs` (one file for now; split when it grows).
+- **Backend:** Standard Rust 2021. Modules: `models`, `routes`, `auth`, `error`, `db`. Routes are in `routes/mod.rs` and `routes/admin.rs`.
 - **Frontend:** Functional components with hooks. Auth state lives in `AuthContext` via React context. API calls live in `api/client.ts` with JWT auto-injection.
 - **SQL:** Migrations in `backend/migrations/` — numbered sequentially. `sqlx::migrate!()` runs them at compile time. All queries use `$1, $2` bind parameters (no string interpolation).
 - **Error handling:** All route handlers return `Result<Json<Value>, AppError>`. Axum converts `AppError` to HTTP responses automatically via `IntoResponse`.
 - **Auth extraction:** Route handlers that need the current user accept `AuthUser` as a parameter. Axum's `FromRequestParts` impl extracts and validates the JWT before the handler runs.
+- **Admin auth:** Admin routes use `AdminAuth` extractor — checks `X-Admin-Token` header against `ADMIN_TOKEN` env var.
 
 ## Common Pitfalls
 
