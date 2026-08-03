@@ -88,6 +88,8 @@ async fn main() {
             axum::routing::post(routes::join_group),
         )
         .route("/api/groups/{id}/leaderboard", get(routes::leaderboard))
+        .route("/api/events", get(routes::list_events))
+        .route("/api/events/sync", axum::routing::post(routes::sync_events))
         .route("/api/bets", get(routes::list_bets).post(routes::create_bet))
         .route(
             "/api/bets/{id}/resolve",

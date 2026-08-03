@@ -50,7 +50,13 @@ export async function fetchBets(groupId?: string): Promise<unknown> {
   return res.json();
 }
 
-export async function createBet(req: { group_id: string; amount: number; odds: number }): Promise<unknown> {
+export async function createBet(req: {
+  group_id: string;
+  event_id: string;
+  prediction: string;
+  amount: number;
+  odds: number;
+}): Promise<unknown> {
   const res = await fetch(`${BASE}/bets`, {
     method: 'POST',
     headers: authHeaders(),
@@ -108,5 +114,14 @@ export async function getInviteCode(groupId: string): Promise<unknown> {
 export async function fetchLeaderboard(groupId: string): Promise<unknown> {
   const res = await fetch(`${BASE}/groups/${groupId}/leaderboard`, { headers: authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch leaderboard');
+  return res.json();
+}
+
+// ── Events ────────────────────────────────────────────
+
+export async function fetchEvents(status?: string): Promise<unknown> {
+  const url = status ? `${BASE}/events?status=${status}` : `${BASE}/events`;
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch events');
   return res.json();
 }

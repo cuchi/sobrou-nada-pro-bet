@@ -1,6 +1,12 @@
 import type { Bet } from '../types';
 import { resolveBet } from '../api/client';
 
+const predLabel: Record<string, string> = {
+  home_win: 'Home win',
+  away_win: 'Away win',
+  draw: 'Draw',
+};
+
 export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () => void }) {
   const handleResolve = async (id: string, status: 'won' | 'lost') => {
     await resolveBet(id, status);
@@ -18,11 +24,12 @@ export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () 
         <thead>
           <tr>
             <th>User</th>
+            <th>Event</th>
+            <th>Pick</th>
             <th>Amount</th>
             <th>Odds</th>
             <th>Payout</th>
             <th>Status</th>
-            <th>Created</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -33,6 +40,22 @@ export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () 
                 <span className="user-name-cell">
                   {bet.user_name || bet.user_email}
                 </span>
+              </td>
+              <td className="event-cell">
+                {bet.home_team && bet.away_team ? (
+                  <span className="event-teams-small">
+                    {bet.home_team} vs {bet.away_team}
+                  </span>
+                ) : (
+                  <span className="no-event">—</span>
+                )}
+              </td>
+              <td>
+                {bet.prediction ? (
+                  <span className="prediction-tag">{predLabel[bet.prediction] ?? bet.prediction}</span>
+                ) : (
+                  '—'
+                )}
               </td>
               <td>{bet.amount.toFixed(0)} pts</td>
               <td>{bet.odds}x</td>
@@ -46,7 +69,6 @@ export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () 
               <td>
                 <span className="status-badge">{bet.status}</span>
               </td>
-              <td>{new Date(bet.created_at).toLocaleString()}</td>
               <td>
                 {bet.status === 'pending' && (
                   <>

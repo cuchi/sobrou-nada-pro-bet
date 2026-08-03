@@ -19,8 +19,6 @@ body {
   padding: 2rem 1rem;
 }
 
-/* ---- Header ---- */
-
 header {
   display: flex;
   justify-content: space-between;
@@ -58,8 +56,6 @@ header h1 {
   background: #3a1a1a;
   color: #f87171;
 }
-
-/* ---- User info / auth ---- */
 
 .user-info {
   display: flex;
@@ -109,8 +105,6 @@ header h1 {
   margin-bottom: 2rem;
 }
 
-/* ---- Login error banner ---- */
-
 .login-error-banner {
   display: flex;
   justify-content: space-between;
@@ -139,19 +133,47 @@ header h1 {
 .group-switcher {
   margin-bottom: 1.5rem;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
+.group-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .group-select {
-  flex: 1 1 200px;
+  flex: 1 1 180px;
+  min-width: 0;
   background: #2a2a2a;
   color: #e0e0e0;
   border: 1px solid #3a3a3a;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
   border-radius: 8px;
   font-size: 0.9rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+}
+
+.btn-group-action {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.btn-group-action:hover {
+  color: #ccc;
+  border-color: #555;
 }
 
 .btn-invite {
@@ -196,6 +218,21 @@ header h1 {
   cursor: pointer;
 }
 
+.btn-cancel {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-cancel:hover {
+  color: #ccc;
+}
+
 .invite-link-bar {
   width: 100%;
   display: flex;
@@ -221,6 +258,166 @@ header h1 {
   border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+/* ---- Event picker ---- */
+
+.event-picker {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.event-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.event-picker-header h3 {
+  font-size: 0.9rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.btn-sync {
+  padding: 0.3rem 0.6rem;
+  background: #2a2a2a;
+  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-sync:hover:not(:disabled) {
+  color: #ccc;
+}
+
+.no-events {
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.events-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.event-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  background: #1a1d23;
+  border: 1px solid #252830;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-left-color 0.15s, background 0.15s;
+  color: #d4d8dd;
+}
+
+.event-card:hover {
+  background: #1f2329;
+  border-left-color: #444;
+}
+
+.event-card.selected {
+  border-left-color: #4a9eff;
+  background: #1a1f2e;
+  border-color: #2a3044;
+}
+
+.bet-form .event-card {
+  background: #1a1d23;
+  color: #d4d8dd;
+  border: 1px solid #252830;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.bet-form .event-card:hover {
+  background: #1f2329;
+  border-left-color: #444;
+}
+
+.bet-form .event-card.selected {
+  background: #1a1f2e;
+  border-left-color: #4a9eff;
+  border-color: #2a3044;
+}
+
+.event-teams {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d4d8dd;
+}
+
+.event-meta {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+
+
+.event-picker-loading {
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.prediction-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.prediction-label {
+  color: #888;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.btn-prediction {
+  padding: 0.4rem 0.6rem;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-prediction:hover {
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.btn-prediction.active {
+  background: #2a2a0a;
+  color: #f0c040;
+  border-color: #f0c040;
+  font-weight: 600;
 }
 
 /* ---- Bet form ---- */
@@ -257,8 +454,16 @@ header h1 {
   font-weight: 600;
 }
 
-.bet-form input {
-  flex: 1 1 130px;
+.bet-inputs {
+  width: 100%;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.bet-inputs input {
+  flex: 1 1 100px;
+  min-width: 0;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
   color: #e0e0e0;
@@ -267,7 +472,7 @@ header h1 {
   font-size: 0.9rem;
 }
 
-.bet-form input:focus {
+.bet-inputs input:focus {
   outline: none;
   border-color: #f0c040;
 }
@@ -276,10 +481,10 @@ header h1 {
   flex: 0 0 auto;
   padding: 0.6rem 1.5rem;
   background: #f0c040;
-  color: #0f0f0f;
+  color: #111;
   border: none;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   font-size: 0.9rem;
   transition: opacity 0.2s;
@@ -377,7 +582,7 @@ th {
 }
 
 .user-cell {
-  max-width: 140px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -386,6 +591,28 @@ th {
 .user-name-cell {
   font-size: 0.9rem;
   color: #ccc;
+}
+
+.event-cell {
+  max-width: 180px;
+}
+
+.event-teams-small {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.no-event {
+  color: #555;
+}
+
+.prediction-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: #2a2a2a;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #aaa;
 }
 
 .payout-cell {
@@ -460,8 +687,6 @@ th {
   padding: 3rem 0;
 }
 
-/* ---- Dev login ---- */
-
 .btn-dev-login {
   padding: 0.5rem 1rem;
   background: #3a2a00;
@@ -470,4 +695,19 @@ th {
   border-radius: 8px;
   font-size: 0.85rem;
   cursor: pointer;
+}
+
+.btn-cancel {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-cancel:hover {
+  color: #ccc;
 }

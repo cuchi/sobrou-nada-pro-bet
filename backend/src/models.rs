@@ -93,6 +93,35 @@ pub struct CreateGroupRequest {
     pub name: String,
 }
 
+// ── Event ─────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Event {
+    pub id: Uuid,
+    pub external_id: String,
+    pub home_team: String,
+    pub away_team: String,
+    pub championship: String,
+    pub start_time: DateTime<Utc>,
+    pub status: String,
+    pub home_score: Option<i32>,
+    pub away_score: Option<i32>,
+    pub home_odds: Option<f64>,
+    pub draw_odds: Option<f64>,
+    pub away_odds: Option<f64>,
+    pub raw_data: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum Prediction {
+    HomeWin,
+    AwayWin,
+    Draw,
+}
+
 // ── Bet ───────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq)]
@@ -109,6 +138,8 @@ pub struct Bet {
     pub id: Uuid,
     pub user_id: Uuid,
     pub group_id: Option<Uuid>,
+    pub event_id: Option<Uuid>,
+    pub prediction: Option<Prediction>,
     pub amount: f64,
     pub odds: f64,
     pub status: BetStatus,
@@ -118,6 +149,8 @@ pub struct Bet {
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateBetRequest {
     pub group_id: Uuid,
+    pub event_id: Uuid,
+    pub prediction: Prediction,
     pub amount: f64,
     pub odds: f64,
 }
@@ -127,12 +160,16 @@ pub struct BetWithUser {
     pub id: Uuid,
     pub user_id: Uuid,
     pub group_id: Option<Uuid>,
+    pub event_id: Option<Uuid>,
+    pub prediction: Option<Prediction>,
     pub amount: f64,
     pub odds: f64,
     pub status: BetStatus,
     pub created_at: DateTime<Utc>,
     pub user_name: String,
     pub user_email: String,
+    pub home_team: Option<String>,
+    pub away_team: Option<String>,
 }
 
 // ── Auth ──────────────────────────────────────────────

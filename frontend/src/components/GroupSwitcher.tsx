@@ -21,14 +21,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
 
   const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    if (val === '__create__') {
-      setShowCreate(true);
-      setShowJoin(false);
-    } else if (val === '__join__') {
-      setShowJoin(true);
-      setShowCreate(false);
-      setInviteLink(null);
-    } else if (val === '') {
+    if (val === '') {
       onSelect(null);
     } else {
       onSelect(val);
@@ -49,6 +42,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       onSelect(g.id);
       setNewName('');
       setShowCreate(false);
+      setShowJoin(false);
     } catch {
       alert('Failed to create group');
     } finally {
@@ -67,6 +61,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       onSelect(data.group.id);
       setInviteCode('');
       setShowJoin(false);
+      setShowCreate(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to join');
     } finally {
@@ -87,41 +82,43 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
     }
   };
 
-  if (groups.length === 0 && !showCreate && !showJoin) {
-    return (
-      <div className="group-switcher">
-        <select value="" onChange={handleSelect} className="group-select">
-          <option value="">No groups</option>
-          <option value="__create__">+ Create group</option>
-          <option value="__join__">+ Join by code</option>
-        </select>
-      </div>
-    );
-  }
-
   return (
     <div className="group-switcher">
-      <select
-        value={selectedGroupId || ''}
-        onChange={handleSelect}
-        className="group-select"
-      >
-        <option value="">Select group...</option>
-        {groups.map((g) => (
-          <option key={g.id} value={g.id}>
-            {g.name} ({g.balance.toFixed(0)} pts)
+      <div className="group-bar">
+        <select
+          value={selectedGroupId || ''}
+          onChange={handleSelect}
+          className="group-select"
+        >
+          <option value="">
+            {groups.length === 0 ? 'No groups' : 'Select group...'}
           </option>
-        ))}
-        <option disabled>──</option>
-        <option value="__create__">+ Create group</option>
-        <option value="__join__">+ Join by code</option>
-      </select>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name} ({g.balance.toFixed(0)} pts)
+            </option>
+          ))}
+        </select>
 
-      {selected && selectedGroupId && (
-        <button onClick={handleGetInvite} className="btn-invite" disabled={loading}>
-          Get invite link
+        <button
+          onClick={() => { setShowCreate(true); setShowJoin(false); }}
+          className="btn-group-action"
+        >
+          + Create
         </button>
-      )}
+        <button
+          onClick={() => { setShowJoin(true); setShowCreate(false); setInviteLink(null); }}
+          className="btn-group-action"
+        >
+          + Join
+        </button>
+
+        {selected && selectedGroupId && (
+          <button onClick={handleGetInvite} className="btn-invite" disabled={loading}>
+            Invite
+          </button>
+        )}
+      </div>
 
       {showCreate && (
         <form onSubmit={handleCreate} className="inline-form">
@@ -132,6 +129,9 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
             required
           />
           <button type="submit" disabled={loading}>Create</button>
+          <button type="button" className="btn-cancel" onClick={() => setShowCreate(false)}>
+            Cancel
+          </button>
         </form>
       )}
 
@@ -144,6 +144,9 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
             required
           />
           <button type="submit" disabled={loading}>Join</button>
+          <button type="button" className="btn-cancel" onClick={() => setShowJoin(false)}>
+            Cancel
+          </button>
         </form>
       )}
 

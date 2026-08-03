@@ -4,7 +4,7 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 
 ---
 
-## Phase 1 — Betting core (current)
+## Phase 1 — Betting core
 
 - [x] Axum backend with Postgres
 - [x] Google OAuth login
@@ -13,48 +13,36 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 - [x] Shared bet table
 - [x] Production-safe error handling (5xx never leak)
 
----
-
 ## Phase 2 — Closed beta access
 
-- [ ] `beta_allowlist` table: `email VARCHAR(255) PRIMARY KEY`
-- [ ] Seed the table with allowed emails (manual SQL or a small admin panel)
-- [ ] During `POST /api/auth/google`, after Google verification: if the email is **not** in `beta_allowlist`, return `403 Forbidden` with a friendly message ("You're not on the beta list yet")
-- [ ] Frontend: show the rejection reason clearly (not a generic error)
+- [x] `beta_allowlist` table: `email VARCHAR(255) PRIMARY KEY`
+- [x] Seed the table with allowed emails (manual SQL)
+- [x] During `POST /api/auth/google`, after Google verification: if the email is **not** in `beta_allowlist`, return `403 Forbidden` with a friendly message
+- [x] Frontend: dismissible red banner showing the rejection reason
 
-## Phase 3 — Groups & scoped balances
+## Phase 3 — Groups & scoped balances (current)
 
-- [ ] `groups` table
-
-  ```
-  id           UUID PRIMARY KEY
-  name         VARCHAR(200) NOT NULL
-  invite_code  VARCHAR(20) UNIQUE NOT NULL  (short, URL-safe)
-  owner_id     UUID NOT NULL REFERENCES users(id)
-  created_at   TIMESTAMPTZ DEFAULT NOW()
-  ```
-
-- [ ] `group_members` table
-
-  ```
-  group_id  UUID REFERENCES groups(id) ON DELETE CASCADE
-  user_id   UUID REFERENCES users(id) ON DELETE CASCADE
-  balance   DOUBLE PRECISION NOT NULL DEFAULT 1000
-  joined_at TIMESTAMPTZ DEFAULT NOW()
-  PRIMARY KEY (group_id, user_id)
-  ```
-
-- [ ] Drop `balance` column from `users` (balances are now **per-group**)
-- [ ] Owner-only invite management:
-  - `POST /api/groups` — create a group (caller becomes owner)
-  - `GET /api/groups/:id/invite` — returns `invite_code` (owner only)
-  - `POST /api/groups/:id/regenerate-invite` — rotates the invite code (owner only)
-  - `POST /api/groups/join/:invite_code` — join a group via invite link
-- [ ] Bets become group-scoped: `bets` table gains `group_id UUID NOT NULL REFERENCES groups(id)`
-- [ ] `POST /api/bets` deducts from the user's balance in that group
-- [ ] Resolving a bet updates the user's balance in that group
-- [ ] Leaderboard: `GET /api/groups/:id/leaderboard` → rank members by balance DESC
-- [ ] Frontend: group switcher in the header, group-scoped bet views
+- [x] `groups` table (id, name, invite_code, owner_id, created_at)
+- [x] `group_members` table (group_id, user_id, balance, joined_at)
+- [x] Drop `balance` column from `users` (balances are now **per-group**)
+- [x] Owner-only invite management:
+  - `POST /api/groups` — create group (caller becomes owner + member with 1000 pts)
+  - `GET /api/groups` — list user's groups with balances
+  - `GET /api/groups/:id` — group details + member list
+  - `GET /api/groups/:id/invite` — get invite code (owner only)
+  - `POST /api/groups/:id/invite` — regenerate invite code (owner only)
+  - `POST /api/groups/join/:code` — join by invite code
+- [x] `bets` table gains `group_id` column
+- [x] `POST /api/bets` deducts from user's balance, validates membership
+- [x] `PATCH /api/bets/:id/resolve` credits payout (`amount × odds`) to winner's group balance
+- [x] `GET /api/bets` requires auth, scoped to user's groups (403 if not a member)
+- [x] Bet list shows user names (JOIN users table)
+- [x] Bet list shows color-coded payout column
+- [x] Leaderboard: `GET /api/groups/:id/leaderboard` → ranked by balance DESC
+- [x] Frontend: group switcher with separate +Create / +Join / Invite buttons
+- [x] Frontend: leaderboard component with 🥇🥈🥉 podium
+- [x] Frontend: Cancel buttons on create/join inline forms
+- [x] Dev-only login button (creates random test user, bypasses GCP)
 
 ## Phase 4 — Real events (api-futebol.com.br)
 
@@ -120,8 +108,9 @@ Worker loop (runs every 5 min)
 
 ## Phase 5 — UI polish
 
+- [x] Show user name next to each bet in the table
+- [x] Leaderboard with top-3 podium per group
 - [ ] Event picker: browse upcoming matches, select one, place a prediction bet
-- [ ] Leaderboard page: rank table + top-3 podium per group
 - [ ] Bet history with win/loss streaks per user
 - [ ] Mobile-responsive layout (current dark theme is a good start)
 - [ ] Activity feed: "Alice just won 200 pts on Flamengo vs Palmeiras"
@@ -137,43 +126,32 @@ Worker loop (runs every 5 min)
 
 ---
 
-## Quick wins (low effort, high impact)
-
-| Task | Why |
-|---|---|
-| Add `event_name` string to bets | Even without the real API, manual event names make bets human-readable |
-| Show user name next to each bet in the table | Social proof — feels like a group app |
-| Seed the `beta_allowlist` table with your friends' emails | Instant access control, no code needed |
-| Add create‑group button + group switcher dropdown | Foundation for all Phase 3 features |
-
----
-
 ## Schema evolution summary
 
 ```
-Phase 1                      Phase 3                      Phase 4
-───────                      ───────                      ───────
-users                        users                        users
-  id                          id                            id
-  username                    username                      username
-  balance  ← dropped          email                         email
-  email                       google_id                     google_id
-  google_id                   avatar_url                    avatar_url
-  avatar_url                                               email_notifications ← new
+Phase 1                   Phase 3 (current)          Phase 4
+───────                   ─────────────────          ───────
+users                     users                      users
+  id                        id                          id
+  username                  username                    username
+  balance  ← dropped        email                       email
+  email                     google_id                   google_id
+  google_id                 avatar_url                  avatar_url
+  avatar_url                                            email_notifications ← new
 
-                             groups                       groups (unchanged)
-bets                          id                          bets
-  id                          name                          + event_id FK
-  user_id                     invite_code                   + prediction
-  amount                      owner_id FK
-  odds                                                      events
-  status                     group_members                   id
-                               group_id FK                   external_id
-                               user_id FK                    home_team
-                               balance ← new                 away_team
-                               joined_at                     start_time
-                                                            status
-                             bets                           home_score
-                               + group_id FK                away_score
-                                                            raw_data
+                          groups                     groups (unchanged)
+bets                        id                        bets
+  id                        name                        + event_id FK
+  user_id                   invite_code                 + prediction
+  amount                    owner_id FK
+  odds                                                 events
+  status                   group_members                 id
+                             group_id FK                 external_id
+                             user_id FK                  home_team
+                             balance                     away_team
+                             joined_at                   start_time
+                                                        status
+                          bets                          home_score
+                            + group_id FK               away_score
+                                                        raw_data
 ```

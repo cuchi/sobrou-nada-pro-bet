@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::auth::AuthUser;
 use crate::error::AppError;
 use crate::models::{
-    AuthResponse, Bet, BetStatus, BetWithUser, CreateBetRequest, CreateGroupRequest,
+    AuthResponse, Bet, BetStatus, BetWithUser, CreateBetRequest, CreateGroupRequest, Event,
     GoogleAuthRequest, GoogleTokenClaims, Group, GroupMember, GroupWithBalance, JwtClaims,
     LeaderboardEntry, PublicUser, User,
 };
@@ -387,6 +387,159 @@ pub async fn leaderboard(
     Ok(Json(json!(entries)))
 }
 
+// ── Events ────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct EventsQuery {
+    status: Option<String>,
+}
+
+/// GET /api/events — list events, optionally filtered by status (comma-separated)
+pub async fn list_events(
+    _auth: AuthUser,
+    State(pool): State<PgPool>,
+    Query(query): Query<EventsQuery>,
+) -> Result<Json<Value>, AppError> {
+    let events: Vec<Event> = if let Some(status) = &query.status {
+        // Split "scheduled,live" into ["scheduled", "live"]
+        let statuses: Vec<&str> = status.split(',').map(|s| s.trim()).collect();
+        // Use ANY() to match any of the given statuses
+        sqlx::query_as("SELECT * FROM events WHERE status = ANY($1) ORDER BY start_time")
+            .bind(&statuses)
+            .fetch_all(&pool)
+            .await
+    } else {
+        sqlx::query_as("SELECT * FROM events ORDER BY start_time")
+            .fetch_all(&pool)
+            .await
+    }
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    Ok(Json(json!(events)))
+}
+
+/// POST /api/events/sync — sync upcoming fixtures from footballdata.io
+#[tracing::instrument(skip(pool))]
+pub async fn sync_events(
+    _auth: AuthUser,
+    State(pool): State<PgPool>,
+) -> Result<Json<Value>, AppError> {
+    let api_key = std::env::var("FOOTBALLDATA_API_KEY")
+        .map_err(|_| AppError::Internal("FOOTBALLDATA_API_KEY not set".into()))?;
+
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .get("https://footballdata.io/api/v1/fixtures/upcoming")
+        .header("Authorization", format!("Bearer {api_key}"))
+        .send()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch fixtures: {e}");
+            AppError::Internal(format!("Failed to fetch fixtures: {e}"))
+        })?;
+
+    let raw: serde_json::Value = resp.json().await.map_err(|e| {
+        tracing::error!("Failed to parse API response: {e}");
+        AppError::Internal(format!("Failed to parse events: {e}"))
+    })?;
+
+    let mut inserted = 0;
+    let empty_vec = vec![];
+    let matches = raw["data"]["matches"].as_array().unwrap_or(&empty_vec);
+
+    // Filter to Brasileirão and Catarinense only
+    let matches: Vec<&serde_json::Value> = matches
+        .iter()
+        .filter(|m| {
+            let name = m["league"]["name"].as_str().unwrap_or("").to_lowercase();
+            name.contains("brasileir") || name.contains("catarinense")
+        })
+        .collect();
+
+    for m in &matches {
+        let external_id = m["match_id"]
+            .as_i64()
+            .map(|i| i.to_string())
+            .unwrap_or_default();
+        if external_id.is_empty() {
+            continue;
+        }
+
+        let home_team = m["home_team"]["team_name"].as_str().unwrap_or("TBD");
+        let away_team = m["away_team"]["team_name"].as_str().unwrap_or("TBD");
+        let championship = m["league"]["name"].as_str().unwrap_or("Unknown");
+
+        // match_date format: "2026-08-04 16:00:00"
+        let start_time_str = m["match_date"].as_str().unwrap_or("");
+        let start_time = chrono::NaiveDateTime::parse_from_str(start_time_str, "%Y-%m-%d %H:%M:%S")
+            .map(|dt| dt.and_utc())
+            .unwrap_or_else(|_| Utc::now());
+
+        let status = match m["status"].as_str().unwrap_or("incomplete") {
+            "incomplete" => "scheduled",
+            "live" => "live",
+            "finished" | "complete" => "finished",
+            "cancelled" | "postponed" => "cancelled",
+            _ => "scheduled",
+        };
+
+        let home_score = m["score"]["home"].as_i64().map(|s| s as i32);
+        let away_score = m["score"]["away"].as_i64().map(|s| s as i32);
+
+        let home_odds = m["odds"]["home_win"].as_f64();
+        let draw_odds = m["odds"]["draw"].as_f64();
+        let away_odds = m["odds"]["away_win"].as_f64();
+
+        let result = sqlx::query(
+            r#"INSERT INTO events (external_id, home_team, away_team, championship, start_time, status, home_score, away_score, home_odds, draw_odds, away_odds, raw_data)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+               ON CONFLICT (external_id) DO UPDATE SET
+                   status = EXCLUDED.status,
+                   home_score = EXCLUDED.home_score,
+                   away_score = EXCLUDED.away_score,
+                   home_odds = EXCLUDED.home_odds,
+                   draw_odds = EXCLUDED.draw_odds,
+                   away_odds = EXCLUDED.away_odds,
+                   start_time = EXCLUDED.start_time,
+                   raw_data = EXCLUDED.raw_data"#,
+        )
+        .bind(&external_id)
+        .bind(home_team)
+        .bind(away_team)
+        .bind(championship)
+        .bind(start_time)
+        .bind(status)
+        .bind(home_score)
+        .bind(away_score)
+        .bind(home_odds)
+        .bind(draw_odds)
+        .bind(away_odds)
+        .bind(Some((*m).clone()))
+        .execute(&pool)
+        .await;
+
+        if let Ok(r) = result {
+            inserted += r.rows_affected() as usize;
+        }
+    }
+
+    let total_fetched = raw["data"]["matches"]
+        .as_array()
+        .unwrap_or(&empty_vec)
+        .len();
+    tracing::info!(
+        inserted,
+        filtered = matches.len(),
+        total_fetched,
+        "Fixtures synced"
+    );
+
+    Ok(Json(
+        json!({ "inserted": inserted, "filtered": matches.len(), "total_fetched": total_fetched }),
+    ))
+}
+
 // ── Bets ──────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -417,9 +570,11 @@ pub async fn list_bets(
         }
 
         sqlx::query_as(
-            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email
+            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
+                      e.home_team, e.away_team
                FROM bets b
                JOIN users u ON u.id = b.user_id
+               LEFT JOIN events e ON e.id = b.event_id
                WHERE b.group_id = $1
                ORDER BY b.created_at DESC"#,
         )
@@ -428,10 +583,12 @@ pub async fn list_bets(
         .await
     } else {
         sqlx::query_as(
-            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email
+            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
+                      e.home_team, e.away_team
                FROM bets b
                JOIN group_members gm ON gm.group_id = b.group_id
                JOIN users u ON u.id = b.user_id
+               LEFT JOIN events e ON e.id = b.event_id
                WHERE gm.user_id = $1
                ORDER BY b.created_at DESC"#,
         )
@@ -480,12 +637,14 @@ pub async fn create_bet(
 
     // Create bet
     let bet: Bet = sqlx::query_as(
-        "INSERT INTO bets (id, user_id, group_id, amount, odds)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4)
+        "INSERT INTO bets (id, user_id, group_id, event_id, prediction, amount, odds)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
          RETURNING *",
     )
     .bind(user_id)
     .bind(payload.group_id)
+    .bind(payload.event_id)
+    .bind(&payload.prediction)
     .bind(payload.amount)
     .bind(payload.odds)
     .fetch_one(&pool)
