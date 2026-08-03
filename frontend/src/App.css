@@ -1,0 +1,250 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #0f0f0f;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* ---- Header ---- */
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+header h1 {
+  font-size: 1.75rem;
+  color: #f0c040;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.backend-status {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+}
+
+.backend-status.online {
+  background: #1a3a1a;
+  color: #4ade80;
+}
+
+.backend-status.offline {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
+/* ---- User info / auth ---- */
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.btn-logout {
+  padding: 0.25rem 0.75rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.btn-logout:hover {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+.auth-loading {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.login-prompt {
+  text-align: center;
+  color: #666;
+  padding: 1.5rem;
+  background: #1a1a1a;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+/* ---- Bet form ---- */
+
+.bet-form {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.bet-form h2 {
+  width: 100%;
+  font-size: 1.1rem;
+  color: #aaa;
+  margin-bottom: 0.25rem;
+}
+
+.bet-form input {
+  flex: 1 1 150px;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  color: #e0e0e0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.bet-form input:focus {
+  outline: none;
+  border-color: #f0c040;
+}
+
+.bet-form button {
+  flex: 0 0 auto;
+  padding: 0.6rem 1.5rem;
+  background: #f0c040;
+  color: #0f0f0f;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
+}
+
+.bet-form button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.bet-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Bet list ---- */
+
+.bet-list h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+th {
+  color: #888;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending .status-badge {
+  background: #2a2a0a;
+  color: #f0c040;
+}
+
+.status-won .status-badge {
+  background: #1a3a1a;
+  color: #4ade80;
+}
+
+.status-lost .status-badge {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
+.btn-win,
+.btn-lose {
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-right: 0.25rem;
+  transition: opacity 0.2s;
+}
+
+.btn-win:hover,
+.btn-lose:hover {
+  opacity: 0.8;
+}
+
+.btn-win {
+  background: #1a3a1a;
+  color: #4ade80;
+}
+
+.btn-lose {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
+.empty {
+  color: #666;
+  text-align: center;
+  padding: 3rem 0;
+}
