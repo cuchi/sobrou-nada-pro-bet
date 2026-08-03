@@ -1,5 +1,4 @@
 import type { Bet } from '../types';
-import { resolveBet } from '../api/client';
 
 const predLabel: Record<string, string> = {
   home_win: 'Home win',
@@ -7,12 +6,7 @@ const predLabel: Record<string, string> = {
   draw: 'Draw',
 };
 
-export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () => void }) {
-  const handleResolve = async (id: string, status: 'won' | 'lost') => {
-    await resolveBet(id, status);
-    onUpdate();
-  };
-
+export default function BetList({ bets }: { bets: Bet[] }) {
   if (bets.length === 0) {
     return <p className="empty">No bets yet. Place your first one!</p>;
   }
@@ -30,7 +24,6 @@ export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () 
             <th>Odds</th>
             <th>Payout</th>
             <th>Status</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -68,24 +61,6 @@ export default function BetList({ bets, onUpdate }: { bets: Bet[]; onUpdate: () 
               </td>
               <td>
                 <span className="status-badge">{bet.status}</span>
-              </td>
-              <td>
-                {bet.status === 'pending' && (
-                  <>
-                    <button
-                      className="btn-win"
-                      onClick={() => handleResolve(bet.id, 'won')}
-                    >
-                      ✓ Won
-                    </button>
-                    <button
-                      className="btn-lose"
-                      onClick={() => handleResolve(bet.id, 'lost')}
-                    >
-                      ✗ Lost
-                    </button>
-                  </>
-                )}
               </td>
             </tr>
           ))}

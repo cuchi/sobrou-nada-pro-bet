@@ -135,7 +135,7 @@ function AppContent() {
         ) : (
           <p className="login-prompt">Sign in with Google to place bets</p>
         )}
-        {user && <BetList bets={bets} onUpdate={loadBets} />}
+        {user && <BetList bets={bets} />}
       </main>
     </div>
   );

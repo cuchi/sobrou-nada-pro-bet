@@ -594,14 +594,6 @@ header h1 {
     max-width: 120px;
   }
 
-  .btn-win,
-  .btn-lose {
-    padding: 0.25rem 0.4rem;
-    font-size: 0.7rem;
-    display: block;
-    margin-bottom: 0.2rem;
-  }
-
   /* Crests: slightly smaller on mobile */
   .team-crest {
     width: 40px;
@@ -918,32 +910,6 @@ th {
 }
 
 .status-lost .status-badge {
-  background: #3a1a1a;
-  color: #f87171;
-}
-
-.btn-win,
-.btn-lose {
-  padding: 0.3rem 0.6rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  margin-right: 0.25rem;
-  transition: opacity 0.2s;
-}
-
-.btn-win:hover,
-.btn-lose:hover {
-  opacity: 0.8;
-}
-
-.btn-win {
-  background: #1a3a1a;
-  color: #4ade80;
-}
-
-.btn-lose {
   background: #3a1a1a;
   color: #f87171;
 }

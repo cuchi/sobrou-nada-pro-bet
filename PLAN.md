@@ -41,6 +41,10 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 - [x] Responsive event cards (white, grid layout, crests-only on mobile)
 - [x] Two-line date/time in event cards
 - [x] Prediction buttons with team name + odds on separate lines
+- [x] Group UUID in URL (`?group=<id>`) — survives refresh
+- [x] Invite bar with copy button + dismiss
+- [x] Scrollbar styled to match dark theme
+- [x] Team name ellipsis on overflow
 
 ## Phase 5 — Background worker 🔲
 
@@ -75,6 +79,26 @@ Worker loop (runs every ~5 min)
 SENDGRID_API_KEY=...   # Not yet used
 ```
 
+### Render deployment env vars
+
+**Runtime** (set in Web Service → Environment):
+
+```env
+DATABASE_URL=postgres://...           # Auto-set by Render PostgreSQL service
+GOOGLE_CLIENT_ID=...                   # Same as VITE_GOOGLE_CLIENT_ID
+JWT_SECRET=...                         # openssl rand -base64 32
+ADMIN_TOKEN=...                        # openssl rand -base64 32
+ODDS_API_KEY=...                       # From the-odds-api.com
+ENVIRONMENT=production
+CORS_ALLOWED_ORIGINS=https://your-app.onrender.com
+```
+
+**Build-time** (set in Web Service → Settings → Docker Build Arguments):
+
+```env
+VITE_GOOGLE_CLIENT_ID=...              # Embedded by Vite at build time
+```
+
 ### Migration needed
 
 ```sql
@@ -94,14 +118,16 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 - [ ] Activity feed: "Alice just won 200 pts on Flamengo vs Palmeiras"
 - [ ] Odds column: only show odds, not editable
 
-## Phase 8 — Production deployment 🔲
+## Phase 8 — Production deployment 🚧
 
-- [ ] Dockerize the backend (multi-stage Rust build)
-- [ ] Serve frontend via Nginx or embed in Rust binary
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Managed Postgres (Neon, Supabase, or Railway)
+- [x] Dockerfile — multi-stage (Node frontend build + Rust backend build → single image)
+- [x] Frontend served by Rust binary (tower-http ServeDir, SPA fallback)
+- [x] `.dockerignore` for lean builds
+- [x] `libssl3` + `ca-certificates` in runtime image
+- [x] `ENVIRONMENT=production` + `CORS_ALLOWED_ORIGINS` support
+- [x] Deployed to Render (Docker runtime + managed Postgres)
+- [ ] CI/CD pipeline (GitHub Actions auto-deploy)
 - [ ] Custom domain + HTTPS
-- [ ] Set `ENVIRONMENT=production` + `CORS_ALLOWED_ORIGINS`
 - [ ] Rate limiting on auth endpoints
 
 ---
