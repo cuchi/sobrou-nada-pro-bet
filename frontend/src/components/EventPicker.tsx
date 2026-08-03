@@ -5,6 +5,7 @@ import type { Event, Prediction } from '../types';
 
 interface Props {
   onSelect: (event: Event, prediction: Prediction, odds: number) => void;
+  onEventChange?: () => void;
 }
 
 function oddsLabel(ev: Event, pred: Prediction): string {
@@ -24,7 +25,7 @@ function TeamCrest({ name }: { name: string }) {
   );
 }
 
-export default function EventPicker({ onSelect }: Props) {
+export default function EventPicker({ onSelect, onEventChange }: Props) {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -55,6 +56,7 @@ export default function EventPicker({ onSelect }: Props) {
   const handleEventSelect = (id: string) => {
     setSelectedId(id);
     setPrediction(null);
+    onEventChange?.();
   };
 
   const handlePredictionSelect = (p: Prediction) => {

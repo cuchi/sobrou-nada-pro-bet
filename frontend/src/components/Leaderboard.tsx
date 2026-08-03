@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchLeaderboard } from '../api/client';
 import type { LeaderboardEntry } from '../types';
 
-export default function Leaderboard({ groupId }: { groupId: string }) {
+export default function Leaderboard({ groupId, refreshKey }: { groupId: string; refreshKey: number }) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +20,7 @@ export default function Leaderboard({ groupId }: { groupId: string }) {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   if (loading) return <p className="leaderboard-loading">Loading leaderboard...</p>;
   if (entries.length === 0) return null;
@@ -36,6 +36,7 @@ export default function Leaderboard({ groupId }: { groupId: string }) {
             <th>#</th>
             <th>Player</th>
             <th>Balance</th>
+            <th>At risk</th>
           </tr>
         </thead>
         <tbody>
@@ -52,6 +53,9 @@ export default function Leaderboard({ groupId }: { groupId: string }) {
               </td>
               <td className="balance-cell">
                 <strong>{entry.balance.toFixed(0)}</strong> pts
+              </td>
+              <td className="betted-cell">
+                {entry.betted > 0 ? `-${entry.betted.toFixed(0)} pts` : '—'}
               </td>
             </tr>
           ))}

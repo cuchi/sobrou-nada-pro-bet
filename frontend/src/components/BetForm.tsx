@@ -38,6 +38,17 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
       return;
     }
 
+    const pts = Number(amount);
+    if (!amount || pts < 1) {
+      setError('Enter a valid amount');
+      return;
+    }
+
+    if (pts > balance) {
+      setError('Not enough points');
+      return;
+    }
+
     setError(null);
     setLoading(true);
     try {
@@ -61,13 +72,13 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bet-form">
+    <form onSubmit={handleSubmit} className="bet-form" noValidate>
       <h2>
         Place a Bet in <strong>{groupName}</strong>
         <span className="balance-pill">{balance.toFixed(0)} pts</span>
       </h2>
 
-      <EventPicker onSelect={handleSelect} />
+      <EventPicker onSelect={handleSelect} onEventChange={() => { setSelectedEvent(null); setPrediction(null); setOdds(0); }} />
 
       {selectedEvent && prediction && (
         <>
@@ -82,10 +93,8 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
               type="number"
               step="1"
               min="1"
-              max={balance}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              required
             />
             <button type="submit" disabled={loading} className="btn-place-bet">
               {loading ? 'Placing...' : 'Place Bet'}

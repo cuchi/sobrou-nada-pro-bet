@@ -807,6 +807,12 @@ header h1 {
   color: #f0c040;
 }
 
+.betted-cell {
+  font-size: 0.8rem;
+  color: #f87171;
+  font-variant-numeric: tabular-nums;
+}
+
 .leaderboard-loading {
   color: #666;
   text-align: center;

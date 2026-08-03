@@ -86,6 +86,7 @@ pub struct LeaderboardEntry {
     pub email: String,
     pub avatar_url: Option<String>,
     pub balance: f64,
+    pub betted: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]

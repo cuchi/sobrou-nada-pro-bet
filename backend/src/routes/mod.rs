@@ -375,11 +375,15 @@ pub async fn leaderboard(
 
     let entries: Vec<LeaderboardEntry> = sqlx::query_as(
         r#"SELECT u.id AS user_id, COALESCE(u.username, u.email) AS name,
-                  u.email, u.avatar_url, gm.balance
+                  u.email, u.avatar_url,
+                  gm.balance + COALESCE(SUM(b.amount) FILTER (WHERE b.status = 'pending'), 0) AS balance,
+                  COALESCE(SUM(b.amount) FILTER (WHERE b.status = 'pending'), 0) AS betted
            FROM group_members gm
            JOIN users u ON u.id = gm.user_id
+           LEFT JOIN bets b ON b.user_id = gm.user_id AND b.group_id = gm.group_id AND b.status = 'pending'
            WHERE gm.group_id = $1
-           ORDER BY gm.balance DESC"#,
+           GROUP BY u.id, u.username, u.email, u.avatar_url, gm.balance
+           ORDER BY balance DESC"#,
     )
     .bind(group_id)
     .fetch_all(&pool)

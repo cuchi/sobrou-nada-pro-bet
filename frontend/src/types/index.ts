@@ -60,6 +60,7 @@ export interface LeaderboardEntry {
   email: string;
   avatar_url: string | null;
   balance: number;
+  betted: number;
 }
 
 export interface MeResponse {

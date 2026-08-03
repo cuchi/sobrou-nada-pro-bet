@@ -32,6 +32,7 @@ function AppContent() {
   const [bets, setBets] = useState<Bet[]>([]);
   const [backendStatus, setBackendStatus] = useState<string>('checking...');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(getGroupFromUrl);
+  const [tick, setTick] = useState(0);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
@@ -122,9 +123,9 @@ function AppContent() {
               groupId={selectedGroup.id}
               groupName={selectedGroup.name}
               balance={selectedGroup.balance}
-              onBetCreated={loadBets}
+              onBetCreated={() => { loadBets(); setTick(t => t + 1); }}
             />
-            <Leaderboard groupId={selectedGroup.id} />
+            <Leaderboard groupId={selectedGroup.id} refreshKey={tick} />
           </>
         ) : user ? (
           <p className="login-prompt">
