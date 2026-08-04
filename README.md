@@ -10,7 +10,7 @@ A cashless betting app for a closed beta — friends place points-based bets on 
 
 - [Docker](https://docs.docker.com/get-docker/) (for PostgreSQL)
 - [Rust](https://rustup.rs/) (2021 edition)
-- [Node.js](https://nodejs.org/) 18+ and npm
+- [Node.js](https://nodejs.org/) 24+ and npm
 
 ## Quick Start
 

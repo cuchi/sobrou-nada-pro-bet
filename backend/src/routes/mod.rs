@@ -5,7 +5,7 @@ use axum::{
 };
 use chrono::Utc;
 use jsonwebtoken::{encode, EncodingKey, Header};
-use rand::Rng;
+use rand::RngExt;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -705,8 +705,8 @@ pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppErr
 
 fn generate_invite_code() -> String {
     let chars: Vec<char> = "abcdefghijklmnopqrstuvwxyz0123456789".chars().collect();
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     (0..8)
-        .map(|_| chars[rng.gen_range(0..chars.len())])
+        .map(|_| chars[rng.random_range(0..chars.len())])
         .collect()
 }

@@ -164,6 +164,29 @@ Support English (en) and Brazilian Portuguese (pt-BR).
 - [ ] Team names — keep as-is (proper nouns, not translated)
 - [ ] Backend error messages — optionally localize based on `Accept-Language` header (lower priority)
 
+## Phase 11 — Maintenance 🔲
+
+Current versions as of Aug 2026:
+
+| Dep | Version |
+|---|---|
+| Rust | 1.97.1 |
+| Node | 24.19 |
+| React | 19.2 |
+| Axum | 0.8.9 |
+| SQLx | 0.9.0 |
+| Tokio | 1.53 |
+| Reqwest | 0.13.4 |
+| JsonWebToken | 11.0 |
+| Rand | 0.10.2 |
+| Tower-HTTP | 0.7.0 |
+
+- [ ] Bump Rust dependencies — `cargo update`, check for breaking changes
+- [ ] Bump Node dependencies — `npm outdated` + `npm update`, audit for vulnerabilities
+- [ ] Update Docker base images — Node LTS, Rust stable, Debian slim
+- [ ] Review Render pricing — free tier limits, consider upgrading if usage grows
+- [ ] Monitor the-odds-api.com — free tier quota (500 req/month), API version changes
+
 ---
 
 ## Schema (current)
