@@ -81,7 +81,7 @@ In production, this should be a cron job or background worker — not exposed to
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 19, TypeScript, Vite 6 |
+| Frontend | React 19, TypeScript 5.8, Vite 8 |
 | Backend | Rust, Axum 0.8, SQLx 0.8 |
 | Database | PostgreSQL 16 |
 | Auth | Google OAuth + JWT |
