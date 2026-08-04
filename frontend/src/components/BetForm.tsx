@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createBet } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import type { Bet, Event, Prediction } from '../types';
 import EventPicker from './EventPicker';
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function BetForm({ groupId, groupName, balance, bets, onBetCreated }: Props) {
+  const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [odds, setOdds] = useState<number>(0);
@@ -20,8 +22,12 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
   const [error, setError] = useState<string | null>(null);
 
   const bettedEventIds = useMemo(
-    () => new Set(bets.filter((b) => b.status === 'pending' && b.event_id).map((b) => b.event_id!)),
-    [bets],
+    () => new Set(
+      bets
+        .filter((b) => b.user_id === user?.id && b.status === 'pending' && b.event_id)
+        .map((b) => b.event_id!)
+    ),
+    [bets, user],
   );
 
   const handleSelect = (ev: Event, pred: Prediction, autoOdds: number) => {
