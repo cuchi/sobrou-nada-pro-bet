@@ -22,7 +22,7 @@ Full-stack web application for a simple betting system. Users sign in with Googl
 | 6 | Auto-resolve — detect finished matches, compare prediction vs score | 🔲 Todo |
 | 7 | Email notifications — SendGrid on bet resolution | 🔲 Todo |
 | 8 | Bet history & streaks — per-user stats, activity feed | 🔲 Todo |
-| 9 | Deploy — Dockerfile, Render, managed Postgres, production CORS, HTTPS | 🚧 In progress |
+| 9 | Deploy — Dockerfile, Render, managed Postgres, production CORS, HTTPS, CI | ✅ Done |
 
 ### Env vars to add for future phases
 

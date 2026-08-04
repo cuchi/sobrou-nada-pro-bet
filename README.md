@@ -1,5 +1,7 @@
 # 🎲 Sobrou Nada Pro Bet
 
+[![CI](https://github.com/cuchi/sobrou-nada-pro-bet/actions/workflows/ci.yml/badge.svg)](https://github.com/cuchi/sobrou-nada-pro-bet/actions/workflows/ci.yml)
+
 A cashless betting app for a closed beta — friends place points-based bets on Brazilian football matches (Brasileirão), compete in private groups, and climb the leaderboard.
 
 ## Prerequisites

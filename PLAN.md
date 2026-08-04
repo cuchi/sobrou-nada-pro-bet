@@ -126,9 +126,20 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 - [x] `libssl3` + `ca-certificates` in runtime image
 - [x] `ENVIRONMENT=production` + `CORS_ALLOWED_ORIGINS` support
 - [x] Deployed to Render (Docker runtime + managed Postgres)
-- [ ] CI/CD pipeline (GitHub Actions auto-deploy)
-- [ ] Custom domain + HTTPS
+- [x] CI pipeline — GitHub Actions (build backend + frontend on push/PR)
+- [x] Custom domain + HTTPS (sobrounadapro.bet via Cloudflare)
 - [ ] Rate limiting on auth endpoints
+
+## Phase 9 — SPA polish 🔲
+
+- [ ] Loading skeletons — shimmer placeholders while data fetches
+- [ ] Smooth transitions — fade-in on mount, slide between views
+- [ ] Optimistic updates — reflect bet placement instantly, roll back on error
+- [ ] Toast notifications — success/error feedback instead of alert()
+- [ ] Empty states — illustrations or messages for empty bet lists, groups, etc.
+- [ ] Error boundaries — catch component crashes gracefully
+- [ ] Offline indicator — show when backend is unreachable
+- [ ] Keyboard shortcuts — Enter to submit, Esc to close modals
 
 ---
 
