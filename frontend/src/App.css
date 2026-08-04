@@ -648,9 +648,16 @@ header h1 {
   color: #aaa;
 }
 
+.leaderboard table {
+  table-layout: fixed;
+}
+
+.leaderboard th:first-child { width: 2.5rem; }
+.leaderboard th:nth-child(3) { width: 5rem; }
+.leaderboard th:nth-child(4) { width: 4.5rem; }
+
 .rank-cell {
   font-size: 1.1rem;
-  width: 3rem;
 }
 
 .podium-row {
@@ -664,6 +671,13 @@ header h1 {
   object-fit: cover;
   margin-right: 0.5rem;
   vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.lb-name-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lb-name {
@@ -674,12 +688,14 @@ header h1 {
 .balance-cell {
   font-size: 0.95rem;
   color: #f0c040;
+  white-space: nowrap;
 }
 
 .betted-cell {
   font-size: 0.8rem;
   color: #f87171;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .leaderboard-loading {
@@ -712,6 +728,7 @@ th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .empty {
@@ -887,13 +904,7 @@ th {
   }
 
   .leaderboard {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     padding: 1rem;
-  }
-
-  .leaderboard table {
-    min-width: 320px;
   }
 
   th, td {

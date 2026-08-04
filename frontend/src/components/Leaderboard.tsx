@@ -45,11 +45,11 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
               <td className="rank-cell">
                 {i < 3 ? podium[i] : i + 1}
               </td>
-              <td>
+              <td className="lb-name-cell">
                 {entry.avatar_url && (
                   <img src={entry.avatar_url} alt="" className="lb-avatar" />
                 )}
-                <span className="lb-name">{entry.name}</span>
+                <span className="lb-name" title={entry.name}>{entry.name}</span>
               </td>
               <td className="balance-cell">
                 <strong>{entry.balance.toFixed(0)}</strong> pts
