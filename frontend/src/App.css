@@ -475,6 +475,11 @@ header h1 {
   border-color: #2a3044;
 }
 
+.event-card.betted {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .team-crest {
   width: 48px;
   height: 48px;

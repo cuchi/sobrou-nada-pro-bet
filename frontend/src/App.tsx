@@ -123,6 +123,7 @@ function AppContent() {
               groupId={selectedGroup.id}
               groupName={selectedGroup.name}
               balance={selectedGroup.balance}
+              bets={bets}
               onBetCreated={() => { loadBets(); setTick(t => t + 1); }}
             />
             <Leaderboard groupId={selectedGroup.id} refreshKey={tick} />

@@ -1,22 +1,28 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { createBet } from '../api/client';
-import type { Event, Prediction } from '../types';
+import type { Bet, Event, Prediction } from '../types';
 import EventPicker from './EventPicker';
 
 interface Props {
   groupId: string;
   groupName: string;
   balance: number;
+  bets: Bet[];
   onBetCreated: () => void;
 }
 
-export default function BetForm({ groupId, groupName, balance, onBetCreated }: Props) {
+export default function BetForm({ groupId, groupName, balance, bets, onBetCreated }: Props) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [odds, setOdds] = useState<number>(0);
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const bettedEventIds = useMemo(
+    () => new Set(bets.filter((b) => b.status === 'pending' && b.event_id).map((b) => b.event_id!)),
+    [bets],
+  );
 
   const handleSelect = (ev: Event, pred: Prediction, autoOdds: number) => {
     setSelectedEvent(ev);
@@ -85,7 +91,7 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
         <span className="balance-pill">{balance.toFixed(0)} pts</span>
       </h2>
 
-      <EventPicker onSelect={handleSelect} onEventChange={handleEventChange} />
+      <EventPicker onSelect={handleSelect} onEventChange={handleEventChange} bettedEventIds={bettedEventIds} />
 
       {selectedEvent && prediction && (
         <>

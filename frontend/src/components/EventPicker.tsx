@@ -6,6 +6,7 @@ import type { Event, Prediction } from '../types';
 interface Props {
   onSelect: (event: Event, prediction: Prediction, odds: number) => void;
   onEventChange?: () => void;
+  bettedEventIds: Set<string>;
 }
 
 function oddsLabel(ev: Event, pred: Prediction): string {
@@ -25,7 +26,7 @@ function TeamCrest({ name }: { name: string }) {
   );
 }
 
-export default function EventPicker({ onSelect, onEventChange }: Props) {
+export default function EventPicker({ onSelect, onEventChange, bettedEventIds }: Props) {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -80,11 +81,14 @@ export default function EventPicker({ onSelect, onEventChange }: Props) {
         </p>
       ) : (
         <div className="events-grid">
-          {events.map((ev) => (
+          {events.map((ev) => {
+            const betted = bettedEventIds.has(ev.id);
+            return (
             <button
               key={ev.id}
-              className={`event-card ${selectedId === ev.id ? 'selected' : ''}`}
-              onClick={() => handleEventSelect(ev.id)}
+              className={`event-card ${selectedId === ev.id ? 'selected' : ''} ${betted ? 'betted' : ''}`}
+              onClick={() => !betted && handleEventSelect(ev.id)}
+              disabled={betted}
             >
               <span className="team-name home">{ev.home_team}</span>
               <span className="matchup-core">
@@ -111,7 +115,8 @@ export default function EventPicker({ onSelect, onEventChange }: Props) {
                 </span>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 

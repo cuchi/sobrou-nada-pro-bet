@@ -383,7 +383,7 @@ pub async fn leaderboard(
            LEFT JOIN bets b ON b.user_id = gm.user_id AND b.group_id = gm.group_id AND b.status = 'pending'
            WHERE gm.group_id = $1
            GROUP BY u.id, u.username, u.email, u.avatar_url, gm.balance
-           ORDER BY balance DESC"#,
+           ORDER BY balance DESC, betted DESC"#,
     )
     .bind(group_id)
     .fetch_all(&pool)
