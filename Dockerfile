@@ -1,5 +1,5 @@
 # ── Stage 1: Build frontend ──────────────────────────
-FROM node:20-alpine AS frontend
+FROM node:24-alpine AS frontend
 ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 WORKDIR /app/frontend
@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ── Stage 2: Build backend ───────────────────────────
-FROM rust:1.88-slim-bookworm AS backend
+FROM rust:1.97-slim-bookworm AS backend
 WORKDIR /app/backend
 COPY backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/src ./src

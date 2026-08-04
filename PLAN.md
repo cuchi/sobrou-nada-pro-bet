@@ -170,7 +170,7 @@ Current versions as of Aug 2026:
 
 | Dep | Version |
 |---|---|
-| Rust | 1.97.1 |
+| Rust | 1.97.1 (edition 2024) |
 | Node | 24.19 |
 | React | 19.2 |
 | Axum | 0.8.9 |

@@ -37,7 +37,7 @@ CORS_ALLOWED_ORIGINS=...      # Required in prod (already supported)
 | Layer | Technology |
 |---|---|
 | Frontend | React 19, TypeScript, Vite 6 |
-| Backend | Rust (2021 edition), Axum 0.8, SQLx 0.9 |
+| Backend | Rust (2024 edition), Axum 0.8, SQLx 0.9 |
 | Database | PostgreSQL 16 (via Docker Compose) |
 | Auth | Google OAuth 2.0 (implicit flow) + JWT |
 | Dev proxy | Vite proxies `/api` and `/health` to backend |
@@ -183,7 +183,7 @@ Migrations run automatically on backend startup.
 
 ## Code Conventions
 
-- **Backend:** Standard Rust 2021. Modules: `models`, `routes`, `auth`, `error`, `db`. Routes are in `routes/mod.rs` and `routes/admin.rs`.
+- **Backend:** Standard Rust 2024. Modules: `models`, `routes`, `auth`, `error`, `db`. Routes are in `routes/mod.rs` and `routes/admin.rs`.
 - **Frontend:** Functional components with hooks. Auth state lives in `AuthContext` via React context. API calls live in `api/client.ts` with JWT auto-injection.
 - **SQL:** Migrations in `backend/migrations/` — numbered sequentially. `sqlx::migrate!()` runs them at compile time. All queries use `$1, $2` bind parameters (no string interpolation).
 - **Error handling:** All route handlers return `Result<Json<Value>, AppError>`. Axum converts `AppError` to HTTP responses automatically via `IntoResponse`.
