@@ -169,6 +169,7 @@ pub struct BetWithUser {
     pub created_at: DateTime<Utc>,
     pub user_name: String,
     pub user_email: String,
+    pub user_avatar_url: Option<String>,
     pub home_team: Option<String>,
     pub away_team: Option<String>,
 }

@@ -25,16 +25,18 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
     setError(null);
   };
 
+  const handleEventChange = () => {
+    setSelectedEvent(null);
+    setPrediction(null);
+    setOdds(0);
+    setAmount('');
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedEvent || !prediction) {
-      setError('Select a match and your prediction first');
-      return;
-    }
-
-    if (odds < 1.01) {
-      setError('No odds available for this prediction');
       return;
     }
 
@@ -46,6 +48,11 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
 
     if (pts > balance) {
       setError('Not enough points');
+      return;
+    }
+
+    if (odds < 1.01) {
+      setError('No odds available for this prediction');
       return;
     }
 
@@ -78,7 +85,7 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
         <span className="balance-pill">{balance.toFixed(0)} pts</span>
       </h2>
 
-      <EventPicker onSelect={handleSelect} onEventChange={() => { setSelectedEvent(null); setPrediction(null); setOdds(0); }} />
+      <EventPicker onSelect={handleSelect} onEventChange={handleEventChange} />
 
       {selectedEvent && prediction && (
         <>
@@ -90,11 +97,12 @@ export default function BetForm({ groupId, groupName, balance, onBetCreated }: P
           <div className="bet-inputs">
             <input
               placeholder="Amount (pts)"
-              type="number"
-              step="1"
-              min="1"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
             />
             <button type="submit" disabled={loading} className="btn-place-bet">
               {loading ? 'Placing...' : 'Place Bet'}

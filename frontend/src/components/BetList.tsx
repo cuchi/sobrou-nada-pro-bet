@@ -1,10 +1,17 @@
 import type { Bet } from '../types';
 
-const predLabel: Record<string, string> = {
-  home_win: 'Home win',
-  away_win: 'Away win',
-  draw: 'Draw',
-};
+function predictionText(bet: Bet): string {
+  switch (bet.prediction) {
+    case 'home_win':
+      return bet.home_team || 'Home win';
+    case 'away_win':
+      return bet.away_team || 'Away win';
+    case 'draw':
+      return 'Draw';
+    default:
+      return '—';
+  }
+}
 
 export default function BetList({ bets }: { bets: Bet[] }) {
   if (bets.length === 0) {
@@ -22,7 +29,6 @@ export default function BetList({ bets }: { bets: Bet[] }) {
             <th>Pick</th>
             <th>Amount</th>
             <th>Odds</th>
-            <th>Payout</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -30,9 +36,21 @@ export default function BetList({ bets }: { bets: Bet[] }) {
           {bets.map((bet) => (
             <tr key={bet.id} className={`status-${bet.status}`}>
               <td className="user-cell">
-                <span className="user-name-cell">
-                  {bet.user_name || bet.user_email}
-                </span>
+                {bet.user_avatar_url ? (
+                  <img
+                    src={bet.user_avatar_url}
+                    alt=""
+                    className="bet-avatar"
+                    title={bet.user_name || bet.user_email}
+                  />
+                ) : (
+                  <span
+                    className="bet-avatar bet-avatar-initial"
+                    title={bet.user_name || bet.user_email}
+                  >
+                    {(bet.user_name || bet.user_email).slice(0, 2).toUpperCase()}
+                  </span>
+                )}
               </td>
               <td className="event-cell">
                 {bet.home_team && bet.away_team ? (
@@ -45,20 +63,13 @@ export default function BetList({ bets }: { bets: Bet[] }) {
               </td>
               <td>
                 {bet.prediction ? (
-                  <span className="prediction-tag">{predLabel[bet.prediction] ?? bet.prediction}</span>
+                  <span className="prediction-tag">{predictionText(bet)}</span>
                 ) : (
                   '—'
                 )}
               </td>
               <td>{bet.amount.toFixed(0)} pts</td>
-              <td>{bet.odds}x</td>
-              <td className="payout-cell">
-                {bet.status === 'won'
-                  ? `+${(bet.amount * bet.odds).toFixed(0)}`
-                  : bet.status === 'lost'
-                    ? `-${bet.amount.toFixed(0)}`
-                    : `${(bet.amount * bet.odds).toFixed(0)} pts`}
-              </td>
+              <td title={`Payout: ${(bet.amount * bet.odds).toFixed(0)} pts`}>{bet.odds}x</td>
               <td>
                 <span className="status-badge">{bet.status}</span>
               </td>

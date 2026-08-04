@@ -13,6 +13,7 @@ export interface Bet {
   created_at: string;
   user_name: string;
   user_email: string;
+  user_avatar_url: string | null;
   home_team: string | null;
   away_team: string | null;
 }

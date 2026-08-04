@@ -455,6 +455,7 @@ pub async fn list_bets(
 
         sqlx::query_as(
             r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
+                      u.avatar_url AS user_avatar_url,
                       e.home_team, e.away_team
                FROM bets b
                JOIN users u ON u.id = b.user_id
@@ -468,6 +469,7 @@ pub async fn list_bets(
     } else {
         sqlx::query_as(
             r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
+                      u.avatar_url AS user_avatar_url,
                       e.home_team, e.away_team
                FROM bets b
                JOIN group_members gm ON gm.group_id = b.group_id
