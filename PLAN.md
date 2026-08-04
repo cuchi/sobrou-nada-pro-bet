@@ -38,13 +38,17 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 - [x] 1-hour cutoff before kickoff (server-enforced)
 - [x] No duplicate bets on same event/user/group
 - [x] Event picker UI with team crests (48px PNG, transparent BG)
-- [x] Responsive event cards (white, grid layout, crests-only on mobile)
+- [x] Responsive event cards (dark theme, grid layout, crests-only on mobile)
 - [x] Two-line date/time in event cards
 - [x] Prediction buttons with team name + odds on separate lines
 - [x] Group UUID in URL (`?group=<id>`) — survives refresh
 - [x] Invite bar with copy button + dismiss
+- [x] Crest border via CSS drop-shadow (traces alpha channel)
+- [x] Already-bet matches disabled at reduced opacity
+- [x] Leaderboard shows at-risk points, tiebreaker by risk amount, ellipsis on long names
 - [x] Scrollbar styled to match dark theme
 - [x] Team name ellipsis on overflow
+- [x] Bet list: avatar with initials fallback, prediction shows team name, odds tooltip with payout
 
 ## Phase 5 — Background worker 🔲
 
@@ -110,12 +114,14 @@ VITE_GOOGLE_CLIENT_ID=...              # Embedded by Vite at build time
 ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 ```
 
-## Phase 6 — Auto-resolve 🔲
+## Phase 6 — Auto-resolve 🚧
 
-- Detect finished matches from the-odds-api.com (or by comparing `start_time` to now)
-- Compare `bet.prediction` vs actual score
-- Auto-update bet status + group member balances
-- Handle edge cases: cancelled matches, ties with no draw prediction
+- [x] `POST /admin/bets/resolve` — fetches scores from the-odds-api.com `/scores/` endpoint
+- [x] Updates event status to `finished` + stores `home_score` / `away_score`
+- [x] Resolves pending bets: compares prediction vs actual result, sets won/lost
+- [x] Credits payout (`amount × odds`) to winner's group balance on win
+- [ ] Untested — no matches have been played yet (season starts Aug 8)
+- [ ] Handle edge cases: cancelled matches, ties with no draw prediction
 
 ## Phase 7 — UI polish (remaining) 🔲
 
@@ -123,7 +129,7 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 - [ ] Activity feed: "Alice just won 200 pts on Flamengo vs Palmeiras"
 - [ ] Odds column: only show odds, not editable
 
-## Phase 8 — Production deployment 🚧
+## Phase 8 — Production deployment ✅
 
 - [x] Dockerfile — multi-stage (Node frontend build + Rust backend build → single image)
 - [x] Frontend served by Rust binary (tower-http ServeDir, SPA fallback)
@@ -212,6 +218,7 @@ bets                            joined_at
 | GET | `/api/bets` | No* | List bets (by group) |
 | POST | `/api/bets` | Bearer | Create bet |
 | PATCH | `/api/bets/:id/resolve` | Bearer | Resolve bet |
-| POST | `/admin/events/sync` | Admin | Sync from the-odds-api.com |
+| POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |
+| POST | `/admin/bets/resolve` | Admin | Fetch scores and resolve pending bets |
 
 \* Public for MVP. † Only in non-production.

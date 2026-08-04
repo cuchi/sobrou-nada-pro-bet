@@ -97,6 +97,10 @@ async fn main() {
             "/admin/events/sync",
             axum::routing::post(routes::admin::sync_events),
         )
+        .route(
+            "/admin/bets/resolve",
+            axum::routing::post(routes::admin::resolve_bets),
+        )
         .route("/api/bets", get(routes::list_bets).post(routes::create_bet))
         .route(
             "/api/bets/{id}/resolve",

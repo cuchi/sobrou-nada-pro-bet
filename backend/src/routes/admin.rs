@@ -162,3 +162,124 @@ pub async fn sync_events(
         "total_fetched": matches.len()
     })))
 }
+
+/// POST /admin/bets/resolve — fetch scores and resolve pending bets
+pub async fn resolve_bets(
+    _auth: AdminAuth,
+    State(pool): State<PgPool>,
+) -> Result<Json<Value>, AppError> {
+    let api_key = std::env::var("ODDS_API_KEY")
+        .map_err(|_| AppError::Internal("ODDS_API_KEY not set".into()))?;
+
+    let client = reqwest::Client::new();
+    let sport = "soccer_brazil_campeonato";
+    let base = "https://api.the-odds-api.com/v4";
+
+    let url = format!("{base}/sports/{sport}/scores/?apiKey={api_key}&daysFrom=3");
+
+    let resp = client.get(&url).send().await.map_err(|e| {
+        tracing::error!("Failed to fetch scores: {e}");
+        AppError::Internal(format!("Failed to fetch scores: {e}"))
+    })?;
+
+    let raw: serde_json::Value = resp.json().await.map_err(|e| {
+        tracing::error!("Failed to parse scores response: {e}");
+        AppError::Internal(format!("Failed to parse scores response: {e}"))
+    })?;
+
+    let empty = vec![];
+    let matches = raw.as_array().unwrap_or(&empty);
+    let mut resolved = 0;
+    let mut updated_scores = 0;
+
+    for m in matches {
+        let external_id = m["id"].as_str().unwrap_or("").to_string();
+        if external_id.is_empty() {
+            continue;
+        }
+
+        let completed = m["completed"].as_bool().unwrap_or(false);
+        let scores = &m["scores"];
+
+        // Update event status and scores in DB
+        if completed {
+            let home_score = scores["home_score"].as_i64().map(|s| s as i32);
+            let away_score = scores["away_score"].as_i64().map(|s| s as i32);
+
+            if let (Some(hs), Some(as_)) = (home_score, away_score) {
+                let updated = sqlx::query(
+                    "UPDATE events SET status = 'finished', home_score = $1, away_score = $2 WHERE external_id = $3",
+                )
+                .bind(home_score)
+                .bind(away_score)
+                .bind(&external_id)
+                .execute(&pool)
+                .await;
+
+                if let Ok(r) = updated {
+                    updated_scores += r.rows_affected() as usize;
+                }
+
+                // Resolve pending bets for this event
+                let outcome = if hs > as_ {
+                    "home_win"
+                } else if as_ > hs {
+                    "away_win"
+                } else {
+                    "draw"
+                };
+
+                let bets: Vec<(uuid::Uuid, uuid::Uuid, String, f64, f64)> = sqlx::query_as(
+                    "SELECT b.id, b.user_id, b.prediction, b.amount, b.odds FROM bets b JOIN events e ON e.id = b.event_id WHERE e.external_id = $1 AND b.status = 'pending'",
+                )
+                .bind(&external_id)
+                .fetch_all(&pool)
+                .await
+                .unwrap_or_default();
+
+                for (bet_id, user_id, prediction, amount, odds) in &bets {
+                    let won = prediction.as_str() == outcome;
+                    let new_status = if won { "won" } else { "lost" };
+
+                    sqlx::query("UPDATE bets SET status = $1::VARCHAR WHERE id = $2")
+                        .bind(new_status)
+                        .bind(bet_id)
+                        .execute(&pool)
+                        .await
+                        .ok();
+
+                    if won {
+                        let payout = amount * odds;
+                        sqlx::query(
+                            "UPDATE group_members SET balance = balance + $1 WHERE user_id = $2 AND group_id = (SELECT group_id FROM bets WHERE id = $3)",
+                        )
+                        .bind(payout)
+                        .bind(user_id)
+                        .bind(bet_id)
+                        .execute(&pool)
+                        .await
+                        .ok();
+                    }
+
+                    resolved += 1;
+
+                    tracing::info!(
+                        bet_id = %bet_id,
+                        user_id = %user_id,
+                        prediction = %prediction,
+                        outcome,
+                        won,
+                        "Bet resolved"
+                    );
+                }
+            }
+        }
+    }
+
+    tracing::info!(resolved, updated_scores, "Resolve complete");
+
+    Ok(Json(json!({
+        "resolved": resolved,
+        "updated_scores": updated_scores
+    })))
+}

@@ -19,7 +19,7 @@ Full-stack web application for a simple betting system. Users sign in with Googl
 | 4b | Admin — secret-token-protected `/admin/` endpoints for sync | ✅ Done |
 | 4c | UI polish — event cards, crests, responsive mobile layout | ✅ Done |
 | 5 | Background worker — auto-sync events periodically (Tokio task) | 🔲 Todo |
-| 6 | Auto-resolve — detect finished matches, compare prediction vs score | 🔲 Todo |
+| 6 | Auto-resolve — detect finished matches, compare prediction vs score | 🚧 Built, untested |
 | 7 | Email notifications — SendGrid on bet resolution | 🔲 Todo |
 | 8 | Bet history & streaks — per-user stats, activity feed | 🔲 Todo |
 | 9 | Deploy — Dockerfile, Render, managed Postgres, production CORS, HTTPS, CI | ✅ Done |
