@@ -1,8 +1,8 @@
-# I Vibe-Coded a Full-Stack Betting App From Zero to Production in 48 Hours
+# I Vibe-coded a Full-Stack App for $2.96
 
-> _Or: how I built a real app with agentic engineering — for $2.60._
+> _Or: how I built a real app from scratch to production with agentic engineering — in two days._
 
-A few weeks ago I had an idea: a cashless betting app for my friends' football group. No real money — just points, bragging rights, and a leaderboard. Everyone puts 100 points on Flamengo. Someone wins big, someone goes broke. You get the idea.
+A few weeks ago I had an idea: a cashless betting app for my friends' group. No real money — just points, bragging rights, and a leaderboard. Everyone puts 100 points on Flamengo. Someone wins big, someone goes broke. You get the idea.
 
 I had two constraints:
 1. I wanted to ship it before the next Brasileirão matchday
@@ -32,17 +32,13 @@ Here's how it went.
 
 I opened a fresh project and told the agent:
 
-> _"I'm making a simple betting system, there's nothing here yet, I want to use a rust framework for the backend"_
-
-A few minutes later, I changed my mind:
-
-> _"I changed my mind, I want to bootstrap a fullstack application with a Rust backend, choose some frontend stack that is compatible and easy to work with the Rust backend"_
+> _"I want to bootstrap a fullstack application with a Rust backend, choose some frontend stack that is compatible and easy to work with the Rust backend"_
 
 The agent came back with React + TypeScript + Vite for the frontend, Axum for the HTTP framework, and SQLx for Postgres.
 
 ## The plan
 
-Before writing any feature code, I told the agent:
+Before writing any feature code, I described the whole vision to the agent — cashless betting, private groups with invite codes, per-group balances, real football data. Then:
 
 > _"Don't implement anything for now, add a structured PLAN.md with the next possible tasks based on what I just said."_
 
@@ -267,14 +263,14 @@ Within a few iterations, the app was live at [sobrounadapro.bet](https://sobroun
 
 ## What vibe coding cost
 
-I used DeepSeek through its API, billed per token. Across all sessions — from scaffolding the project to deploying on Render — the total was **roughly $2.60 USD**.
+I used DeepSeek through its API, billed per token. Across all sessions — from scaffolding the project to deploying on Render, and yes, including writing this blog post — the total was **$2.96 USD**.
 
-That's two dollars and sixty cents. For a full-stack app. In production. Hosted on Render's free tier, powered by a free odds API, served through a $25/year domain.
+That's two dollars and ninety-six cents. For a full-stack app, in production, plus the blog post you're reading right now.
 
 To put that in perspective: the domain was the most expensive line item. The AI that built everything cost less than a coffee.
 
 > **📸 Screenshot — DeepSeek dashboard:**
-> _Capture the DeepSeek API usage dashboard showing the ~$2.60 total spend across sessions._
+> _Capture the DeepSeek API usage dashboard showing the ~$2.96 total spend across sessions._
 > Placeholder: `![DeepSeek billing](screenshot-deepseek.png)`
 
 ## What vibe coding felt like
@@ -300,12 +296,22 @@ Six months ago, building a full-stack app meant weeks of solo work — scaffoldi
 
 The agent isn't replacing developers. It's changing what "development" means. You don't spend hours writing CSS grid layouts — you describe the behavior you want and iterate in 30-second loops. You don't memorize Cargo feature flags or SQLx query syntax — you paste the error and the agent fixes it. You don't read API docs end-to-end — you throw the agent at them and see what sticks.
 
-But you still need to be the one making decisions. The agent doesn't know that the third football API has real odds on the free tier, or that you should harden error handling before shipping to production, or that a $25 domain would be your biggest expense.
+But you still need to be the one making decisions. The agent doesn't know that the third football API has real odds on the free tier, or that you should harden error handling before shipping to production, or that $2.96 is the price of a full-stack app plus a blog post.
 
 Agentic engineering isn't about replacing developers — it's about removing the busywork so you can focus on the choices that matter. The agent writes the code. You make the calls.
+
+## What's next
+
+The MVP is done — you can log in, join a group, bet on real Brasileirão matches, and climb the leaderboard. But there's more in the plan.
+
+Auto-resolve is already built. The endpoint (`POST /admin/bets/resolve`) fetches scores from the-odds-api.com and resolves every pending bet — comparing predictions against actual results, updating statuses, crediting payouts. The catch: it hasn't been tested yet. The Brasileirão season starts August 8th. Once games start finishing, a single `curl` command will tell me if it works.
+
+The original plan called for a background worker — a Tokio task that syncs events and resolves bets on a daily loop. But Render's free tier spins down after 15 minutes of inactivity, which kills any long-running process. Instead, I'm using admin endpoints triggered manually or via cron. It's less elegant, but it's practical — and it costs nothing.
+
+Beyond auto-resolve: email notifications when bets settle, a proper activity feed, bet history with win/loss streaks, and i18n support for Brazilian Portuguese. The plan has it all mapped out. The agent is waiting.
 
 The full source is on [GitHub](https://github.com/cuchi/sobrou-nada-pro-bet) under Apache 2.0.
 
 ---
 
-_Paulo Henrique Cuchi_
+_Written by DeepSeek V4 Pro, curated and vibe-edited by Paulo Henrique Cuchi_
