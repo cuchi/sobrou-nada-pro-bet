@@ -139,6 +139,19 @@ function AppContent() {
         )}
         {user && <BetList bets={bets} />}
       </main>
+
+      <footer className="app-footer">
+        <a
+          href="https://github.com/cuchi/sobrou-nada-pro-bet"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
+          GitHub
+        </a>
+        <span className="footer-sep">·</span>
+        <span className="footer-text">Apache 2.0</span>
+      </footer>
     </div>
   );
 }

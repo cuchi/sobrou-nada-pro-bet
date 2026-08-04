@@ -95,7 +95,8 @@ pub async fn google_login(
     if !is_allowed {
         tracing::warn!(%email, "User not on beta allowlist");
         return Err(AppError::Forbidden(
-            "You're not on the beta list yet. This app is currently invite-only.".into(),
+            "This app is currently in closed beta. Contact paulo@cuchi.me to request access."
+                .into(),
         ));
     }
 

@@ -54,7 +54,7 @@ A long-running Tokio task spawned at startup:
 Worker loop (runs every ~5 min)
   |
   +-- 1. Sync events (the-odds-api.com)
-  |     POST /admin/events/sync equivalent, in-process
+  |     Same logic as POST /admin/events/sync, in-process
   |     UPSERT into events table
   |
   +-- 2. Resolve bets
@@ -72,6 +72,11 @@ Worker loop (runs every ~5 min)
 - **Idempotent** — safe to re-run
 - **Error-resilient** — one failure doesn't stop the loop
 - **Fully logged** — `tracing::info!` at each step
+
+> ⚠️ **Render free tier limitation:** The web service spins down after 15 minutes of inactivity, which would kill the Tokio background task. Options:
+> - Upgrade to a paid Render plan (keeps the service alive)
+> - Use Render **Cron Jobs** ($0 for simple scheduled HTTP calls — could trigger `/admin/events/sync` + an auto-resolve endpoint periodically)
+> - Use an external cron service (e.g. cron-job.org) to ping admin endpoints
 
 ### Env vars needed
 
@@ -140,6 +145,18 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 - [ ] Error boundaries — catch component crashes gracefully
 - [ ] Offline indicator — show when backend is unreachable
 - [ ] Keyboard shortcuts — Enter to submit, Esc to close modals
+
+## Phase 10 — Internationalization (i18n) 🔲
+
+Support English (en) and Brazilian Portuguese (pt-BR).
+
+- [ ] i18n library — `react-i18next` with language detection (browser `Accept-Language` + manual toggle)
+- [ ] Translation files — `locales/en.json` and `locales/pt-BR.json` with all UI strings
+- [ ] Language switcher — flag or dropdown in the header, persisted to `localStorage`
+- [ ] Translate all components — headings, buttons, labels, status badges, errors, empty states
+- [ ] Number/date formatting — use `Intl` with locale-aware formatting (already partially done for dates)
+- [ ] Team names — keep as-is (proper nouns, not translated)
+- [ ] Backend error messages — optionally localize based on `Accept-Language` header (lower priority)
 
 ---
 
