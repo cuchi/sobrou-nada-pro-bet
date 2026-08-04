@@ -86,9 +86,7 @@ The agent hardened error handling — `AppError::Internal` now logs the full det
 
 Then I created the plan — Phase 1 was done, and the roadmap was set.
 
-> **📸 Screenshot — The app after Phase 1:**
-> _Checkout `0fe728a`, log in with Google, capture the full app: header, bet form, and the shared bet list with win/loss resolve buttons._
-> Placeholder: `![Phase 1 app](screenshot-phase1.png)`
+![The app after authentication and core betting](screenshot-phase1.png)
 
 ## Groups and leaderboards
 
@@ -122,19 +120,11 @@ The agent added a dismiss button to the invite bar. These tiny UX fixes piled up
 
 I remember thinking: _this would have taken me a week by hand._
 
-> **📸 Screenshot — Groups and leaderboard:**
-> _Checkout `0cb5eef`, log in with the dev button, create a group, invite another test user, capture the group switcher with Create/Join buttons and the leaderboard with podium._
-> Placeholder: `![Groups and leaderboard](screenshot-groups.png)`
+![Groups, invite system, and leaderboard](screenshot-groups.png)
 
 ## Real match data
 
-Until now, bets were just a placeholder form — you'd type in odds and an amount, no teams, no matches.
-
-> **📸 Screenshot — Basic bet form (no matches yet):**
-> _Checkout `79b1780`, capture the simple form with just odds + amount inputs._
-> Placeholder: `![Basic bet form](screenshot-basic-form.png)`
-
-I needed real Brasileirão fixtures.
+Until now, bets were just a placeholder form — you'd type in odds and an amount, no teams, no matches. I needed real Brasileirão fixtures.
 
 The agent tried **api-futebol.com.br**. No matches for the free tier.
 
@@ -159,10 +149,7 @@ Fourth attempt: **the-odds-api.com**. The agent rewrote everything one more time
 Finally. Real matches. Real odds. The agent had switched APIs four times without breaking anything else.
 
 If I had spent five minutes reading each API's pricing page before diving in, I would've skipped the first three and saved some tokens. But this is the tradeoff with agentic engineering — the iteration speed is so fast that "just try it" is often cheaper than "research it first." Sometimes you burn some cents figuring that out.
-
-> **📸 Screenshot — Event picker with matches and odds:**
-> _Checkout `e75d486`, sync events via admin endpoint, capture the scrollable match list showing team crests, odds badges, and kickoff times._
-> Placeholder: `![Event picker](screenshot-events.png)`
+At this point I had this user flow: open the app → see upcoming matches with real odds → pick a match → pick a prediction → place a bet → see it in the shared bet list.
 
 ## Polish that matters
 
@@ -208,13 +195,9 @@ The agent extracted every `<img>` src, downloaded them, but there was a problem:
 
 The agent wrote ImageMagick commands to floodfill the background to transparent, normalize every crest to a consistent size, and convert them all to PNG. Seventy-five team logos, batch-processed, with the white parts of the crest preserved.
 
-> **📸 Screenshot — Placing a bet (desktop):**
-> _Checkout `a280fa3`, select a match, pick a prediction, show the "Your pick" bar with team name and odds pill. Also show the amount input and Place Bet button._
-> Placeholder: `![Placing a bet](screenshot-bet-desktop.png)`
+![Placing a bet with prediction bar](screenshot-bet-desktop.png)
 
-> **📸 Screenshot — Mobile responsive view:**
-> _Checkout `dfd62c4`, resize to ~400px width, capture the compacted match cards showing only crests with odds and dates._
-> Placeholder: `![Mobile view](screenshot-mobile.png)`
+![Mobile responsive view](screenshot-bet-mobile.png)
 
 ## The admin backdoor
 
@@ -257,9 +240,7 @@ Turned out the binary was crashing because `libssl3` was missing from the runtim
 
 Within a few iterations, the app was live at [sobrounadapro.bet](https://sobrounadapro.bet).
 
-> **📸 Screenshot — Full app on production:**
-> _Checkout `4512322` (HEAD), capture the full app: header with user avatar, group switcher, bet form with event picker, leaderboard, and bet list with avatars and status badges._
-> Placeholder: `![Full app](screenshot-prod.png)`
+![Full app in production](screenshot-prod.png)
 
 ## What vibe coding cost
 
@@ -269,9 +250,7 @@ That's two dollars and ninety-six cents. For a full-stack app, in production, pl
 
 To put that in perspective: the domain was the most expensive line item. The AI that built everything cost less than a coffee.
 
-> **📸 Screenshot — DeepSeek dashboard:**
-> _Capture the DeepSeek API usage dashboard showing the ~$2.96 total spend across sessions._
-> Placeholder: `![DeepSeek billing](screenshot-deepseek.png)`
+![DeepSeek API billing dashboard](screenshot-deepseek.png)
 
 ## What vibe coding felt like
 
