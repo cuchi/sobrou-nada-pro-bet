@@ -85,6 +85,7 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
 --pill-bg:       rgba(255,255,255,0.05)   odds pill
 --pill-hover:    rgba(255,255,255,0.06)   odds pill hover
 --crest-shadow:  rgba(0,0,0,0.50)         crest drop-shadow
+--crest-halo:    rgba(255,255,255,0.60)   light halo so dark crests pop on dark bg
 --active-pill:   rgba(240,192,64,0.15)    active odds pill
 --podium-bg:     rgba(240,192,64,0.08)    podium row
 ```

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchEvents } from '../api/client';
-import { getCrestUrl, getTeamColor, getInitials } from '../crests';
+import { getCrestUrl } from '../crests';
 import type { Event, Prediction } from '../types';
 import { Spinner } from './Spinner';
 import { usePolling } from '../usePolling';
@@ -22,15 +22,7 @@ function oddsLabel(ev: Event, pred: Prediction): string {
 }
 
 function TeamCrest({ name }: { name: string }) {
-  const url = getCrestUrl(name);
-  if (url) {
-    return <img src={url} alt="" className="team-crest" />;
-  }
-  return (
-    <span className="team-crest team-crest-initial" style={{ background: getTeamColor(name) }}>
-      {getInitials(name)}
-    </span>
-  );
+  return <img src={getCrestUrl(name)!} alt="" className="team-crest" />;
 }
 
 export default function EventPicker({ onSelect, onEventChange, bettedEventIds, resetKey }: Props) {

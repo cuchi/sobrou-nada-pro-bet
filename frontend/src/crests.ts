@@ -1,41 +1,42 @@
 // Brazilian team crests — stored locally in /public/crests/
-// Downloaded from escudosfc.com.br, normalized to 64x64 PNG with ImageMagick
+// SVG crests from vetores.org + Wikimedia Commons (transparent backgrounds,
+// rendered natively in the browser). A few teams keep the old PNGs.
 
 const CREST_MAP: Record<string, string> = {
   // Série A
-  'athletico paranaense': 'atlpr.png',
-  'atletico paranaense': 'atlpr.png',
-  'athletico': 'atlpr.png',
-  'atletico mineiro': 'atletico.png',
-  'atletico': 'atletico.png',
-  'bahia': 'bahia.png',
-  'botafogo': 'botafogo.png',
-  'chapecoense': 'chapeco.png',
-  'corinthians': 'corinthians.png',
-  'coritiba': 'coritiba.png',
-  'cruzeiro': 'cruzeiro.png',
-  'flamengo': 'fla.png',
-  'fluminense': 'fluminense.png',
-  'gremio': 'gremio.png',
-  'grêmio': 'gremio.png',
-  'internacional': 'interrs.png',
-  'mirassol': 'mirassol.png',
-  'palmeiras': 'palmeiras.png',
-  'red bull bragantino': 'bragantino.png',
-  'bragantino': 'bragantino.png',
-  'rb bragantino': 'bragantino.png',
-  'remo': 'remo.png',
-  'santos': 'santos.png',
-  'sao paulo': 'saopaulo.png',
-  'são paulo': 'saopaulo.png',
-  'vasco da gama': 'vasco.png',
-  'vasco': 'vasco.png',
-  'vitoria': 'vitoria.png',
-  'vitória': 'vitoria.png',
+  'athletico paranaense': 'atlpr.svg',
+  'atletico paranaense': 'atlpr.svg',
+  'athletico': 'atlpr.svg',
+  'atletico mineiro': 'atletico.svg',
+  'atletico': 'atletico.svg',
+  'bahia': 'bahia.svg',
+  'botafogo': 'botafogo.svg',
+  'chapecoense': 'chapeco.svg',
+  'corinthians': 'corinthians.svg',
+  'coritiba': 'coritiba.svg',
+  'cruzeiro': 'cruzeiro.svg',
+  'flamengo': 'fla.svg',
+  'fluminense': 'fluminense.svg',
+  'gremio': 'gremio.svg',
+  'grêmio': 'gremio.svg',
+  'internacional': 'interrs.svg',
+  'mirassol': 'mirassol.svg',
+  'palmeiras': 'palmeiras.svg',
+  'red bull bragantino': 'bragantino.svg',
+  'bragantino': 'bragantino.svg',
+  'rb bragantino': 'bragantino.svg',
+  'remo': 'remo.svg',
+  'santos': 'santos.svg',
+  'sao paulo': 'saopaulo.svg',
+  'são paulo': 'saopaulo.svg',
+  'vasco da gama': 'vasco.svg',
+  'vasco': 'vasco.svg',
+  'vitoria': 'vitoria.svg',
+  'vitória': 'vitoria.svg',
 
   // Série B
-  'america mineiro': 'ammg.png',
-  'américa mineiro': 'ammg.png',
+  'america mineiro': 'ammg.svg',
+  'américa mineiro': 'ammg.svg',
   'avai': 'avai.png',
   'avaí': 'avai.png',
   'ceara': 'ceara.png',
@@ -43,11 +44,11 @@ const CREST_MAP: Record<string, string> = {
   'crb': 'crb.png',
   'criciuma': 'criciuma.png',
   'criciúma': 'criciuma.png',
-  'cuiaba': 'cuiaba_mt.png',
-  'cuiabá': 'cuiaba_mt.png',
+  'cuiaba': 'cuiaba_mt.svg',
+  'cuiabá': 'cuiaba_mt.svg',
   'goias': 'goias.png',
   'goiás': 'goias.png',
-  'fortaleza': 'fortaleza.png',
+  'fortaleza': 'fortaleza.svg',
   'juventude': 'juventude.png',
   'sport recife': 'sport.png',
   'sport': 'sport.png',
@@ -69,21 +70,4 @@ export function getCrestUrl(name: string): string | null {
     return `/crests/${filename}`;
   }
   return null;
-}
-
-export function getTeamColor(name: string): string {
-  const colors = ['#4a9eff', '#f0c040', '#4ade80', '#f87171', '#a78bfa', '#fb923c', '#2dd4bf', '#f472b6'];
-  let hash = 0;
-  const n = normalize(name);
-  for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
-}
-
-export function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 }
