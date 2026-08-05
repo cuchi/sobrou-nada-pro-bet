@@ -6,7 +6,7 @@ mod routes;
 
 use std::panic;
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use tower_http::{
     cors::{Any, CorsLayer},
     services::{ServeDir, ServeFile},
@@ -60,8 +60,13 @@ async fn main() {
     if std::env::var("JWT_SECRET").is_err() {
         panic!("JWT_SECRET must be set. Generate one with: openssl rand -base64 32");
     }
-    if std::env::var("GOOGLE_CLIENT_ID").is_err() {
-        panic!("GOOGLE_CLIENT_ID must be set in .env");
+
+    let is_prod = std::env::var("ENVIRONMENT")
+        .map(|v| v == "production")
+        .unwrap_or(false);
+
+    if is_prod && std::env::var("GOOGLE_CLIENT_ID").is_err() {
+        panic!("GOOGLE_CLIENT_ID must be set in production");
     }
     if std::env::var("ADMIN_TOKEN").is_err() {
         panic!("ADMIN_TOKEN must be set. Generate one with: openssl rand -base64 32");

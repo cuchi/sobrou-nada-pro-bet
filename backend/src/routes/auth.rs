@@ -178,7 +178,9 @@ pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppErr
         return Err(AppError::NotFound("Not found".into()));
     }
 
+    let names = ["Pelé", "Zico", "Romário", "Ronaldo", "Ronaldinho", "Kaká"];
     let random_id = Uuid::new_v4();
+    let name = names[random_id.as_bytes()[0] as usize % names.len()];
     let email = format!("test-{random_id}@dev.local");
 
     // Ensure the email is in the beta allowlist
@@ -195,7 +197,7 @@ pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppErr
                ON CONFLICT (google_id) DO NOTHING
                RETURNING *"#,
     )
-    .bind(&format!("Tester {random_id}"))
+    .bind(&format!("{name} {}", &random_id.to_string()[..4]))
     .bind(&email)
     .bind(&random_id.to_string())
     .bind::<Option<String>>(None)

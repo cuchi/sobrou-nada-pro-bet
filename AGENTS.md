@@ -206,7 +206,7 @@ Migrations run automatically on backend startup.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` | Yes | — | Postgres connection string |
-| `GOOGLE_CLIENT_ID` | Yes | — | From GCP → Credentials → OAuth 2.0 Client ID |
+| `GOOGLE_CLIENT_ID` | Yes (production) | — | From GCP → Credentials → OAuth 2.0 Client ID |
 | `JWT_SECRET` | Yes | — | Random base64 string (`openssl rand -base64 32`) |
 | `ADMIN_TOKEN` | Yes | — | Random base64 string (`openssl rand -base64 32`) |
 | `ODDS_API_KEY` | Yes | — | API key from the-odds-api.com |

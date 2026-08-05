@@ -34,7 +34,7 @@ Edit `.env` and fill in:
 
 | Variable | How to get it |
 |---|---|
-| `GOOGLE_CLIENT_ID` | [Google Cloud Console](https://console.cloud.google.com/) → Credentials → OAuth 2.0 Client ID |
+| `GOOGLE_CLIENT_ID` | [Google Cloud Console](https://console.cloud.google.com/) → Credentials → OAuth 2.0 Client ID (optional for local dev) |
 | `JWT_SECRET` | `openssl rand -base64 32` |
 | `ADMIN_TOKEN` | `openssl rand -base64 32` |
 | `ODDS_API_KEY` | [the-odds-api.com](https://the-odds-api.com/) (free tier: 500 requests/month) |
@@ -50,12 +50,24 @@ cd frontend
 cp .env.example .env.local
 ```
 
-Edit `.env.local` and set `VITE_GOOGLE_CLIENT_ID` (same as backend).
+Edit `.env.local` and set `VITE_GOOGLE_CLIENT_ID` (same as backend). Optional for local testing — the Dev Login button doesn't need it.
 
 ```sh
 npm install
 npm run dev   # http://localhost:5173
 ```
+
+## Google OAuth Setup
+
+Required for production. For local testing, a **Dev Login** button appears on the frontend that creates a test user instantly.
+
+If you want the test the Google Auth flow locally:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+2. Create an **OAuth 2.0 Client ID** (Web application)
+3. Add `http://localhost:5173` to **Authorized JavaScript Origins**
+4. Under **OAuth consent screen**, add yourself as a Test User
+5. Copy the Client ID into both `backend/.env` and `frontend/.env.local`
 
 ## Syncing Events
 
@@ -82,14 +94,6 @@ curl -X POST http://localhost:3000/admin/bets/resolve \
 ```
 
 This fetches scores from the-odds-api.com, marks finished events, and resolves all pending bets — crediting payouts to winners.
-
-## Google OAuth Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
-2. Create an **OAuth 2.0 Client ID** (Web application)
-3. Add `http://localhost:5173` to **Authorized JavaScript Origins**
-4. Under **OAuth consent screen**, add yourself as a Test User
-5. Copy the Client ID into both `backend/.env` and `frontend/.env.local`
 
 ## Tech Stack
 
