@@ -19,3 +19,6 @@ dotenvy = "0.15"
 reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
 jsonwebtoken = { version = "11", features = ["aws_lc_rs"] }
 rand = "0.10"
+
+[dev-dependencies]
+tower = "0.5"

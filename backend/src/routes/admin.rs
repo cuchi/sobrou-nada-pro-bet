@@ -1,9 +1,9 @@
 use axum::{
+    Json,
     extract::{FromRequestParts, State},
     http::request::Parts,
-    Json,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 
 use crate::error::AppError;
@@ -65,6 +65,11 @@ pub async fn sync_events(
         AppError::Internal(format!("Failed to parse response: {e}"))
     })?;
 
+    process_odds(&pool, &raw).await
+}
+
+/// Process odds JSON (callable from tests without API key)
+pub async fn process_odds(pool: &PgPool, raw: &serde_json::Value) -> Result<Json<Value>, AppError> {
     let empty = vec![];
     let matches = raw.as_array().unwrap_or(&empty);
     let mut inserted = 0;
@@ -147,7 +152,7 @@ pub async fn sync_events(
         .bind(draw_odds)
         .bind(away_odds)
         .bind(Some(m.clone()))
-        .execute(&pool)
+        .execute(pool)
         .await;
 
         if let Ok(r) = result {
@@ -187,6 +192,14 @@ pub async fn resolve_bets(
         AppError::Internal(format!("Failed to parse scores response: {e}"))
     })?;
 
+    process_scores(&pool, &raw).await
+}
+
+/// Process scores JSON (callable from tests without API key)
+pub async fn process_scores(
+    pool: &PgPool,
+    raw: &serde_json::Value,
+) -> Result<Json<Value>, AppError> {
     let empty = vec![];
     let matches = raw.as_array().unwrap_or(&empty);
     let mut resolved = 0;
@@ -213,7 +226,7 @@ pub async fn resolve_bets(
                 .bind(home_score)
                 .bind(away_score)
                 .bind(&external_id)
-                .execute(&pool)
+                .execute(pool)
                 .await;
 
                 if let Ok(r) = updated {
@@ -233,7 +246,7 @@ pub async fn resolve_bets(
                     "SELECT b.id, b.user_id, b.prediction, b.amount, b.odds FROM bets b JOIN events e ON e.id = b.event_id WHERE e.external_id = $1 AND b.status = 'pending'",
                 )
                 .bind(&external_id)
-                .fetch_all(&pool)
+                .fetch_all(pool)
                 .await
                 .unwrap_or_default();
 
@@ -244,7 +257,7 @@ pub async fn resolve_bets(
                     sqlx::query("UPDATE bets SET status = $1::VARCHAR WHERE id = $2")
                         .bind(new_status)
                         .bind(bet_id)
-                        .execute(&pool)
+                        .execute(pool)
                         .await
                         .ok();
 
@@ -256,7 +269,7 @@ pub async fn resolve_bets(
                         .bind(payout)
                         .bind(user_id)
                         .bind(bet_id)
-                        .execute(&pool)
+                        .execute(pool)
                         .await
                         .ok();
                     }

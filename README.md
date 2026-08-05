@@ -57,6 +57,21 @@ npm install
 npm run dev   # http://localhost:5173
 ```
 
+## Testing
+
+```sh
+cd backend
+
+# Option 1: nextest (recommended — faster, cleaner output)
+cargo install cargo-nextest   # one-time
+cargo nextest run
+
+# Option 2: built-in test runner
+cargo test
+```
+
+The test DB is created automatically on first run — no setup needed.
+
 ## Google OAuth Setup
 
 Required for production. For local testing, a **Dev Login** button appears on the frontend that creates a test user instantly.

@@ -1,17 +1,5 @@
-mod auth;
-mod db;
-mod error;
-mod models;
-mod routes;
-
 use std::panic;
 
-use axum::{Router, routing::get};
-use tower_http::{
-    cors::{Any, CorsLayer},
-    services::{ServeDir, ServeFile},
-    trace::TraceLayer,
-};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -72,62 +60,8 @@ async fn main() {
         panic!("ADMIN_TOKEN must be set. Generate one with: openssl rand -base64 32");
     }
 
-    let pool = db::init(&database_url).await;
-    let cors = build_cors();
-
-    let app = Router::new()
-        .route("/health", get(routes::health_check))
-        .route(
-            "/api/auth/google",
-            axum::routing::post(routes::google_login),
-        )
-        .route("/api/auth/me", get(routes::me))
-        .route("/api/dev/login", axum::routing::post(routes::dev_login))
-        .route(
-            "/api/groups",
-            get(routes::list_my_groups).post(routes::create_group),
-        )
-        .route("/api/groups/{id}", get(routes::get_group))
-        .route(
-            "/api/groups/{id}/invite",
-            get(routes::get_invite).post(routes::regenerate_invite),
-        )
-        .route(
-            "/api/groups/join/{code}",
-            axum::routing::post(routes::join_group),
-        )
-        .route("/api/groups/{id}/leaderboard", get(routes::leaderboard))
-        .route("/api/events", get(routes::list_events))
-        .route(
-            "/admin/events/sync",
-            axum::routing::post(routes::admin::sync_events),
-        )
-        .route(
-            "/admin/bets/resolve",
-            axum::routing::post(routes::admin::resolve_bets),
-        )
-        .route("/api/bets", get(routes::list_bets).post(routes::create_bet))
-        .route(
-            "/api/bets/{id}/resolve",
-            axum::routing::patch(routes::resolve_bet),
-        )
-        .fallback_service(
-            ServeDir::new("dist").not_found_service(ServeFile::new("dist/index.html")),
-        )
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(
-                    tower_http::trace::DefaultMakeSpan::new().level(tracing::Level::INFO),
-                )
-                .on_request(tower_http::trace::DefaultOnRequest::new().level(tracing::Level::INFO))
-                .on_response(
-                    tower_http::trace::DefaultOnResponse::new()
-                        .level(tracing::Level::INFO)
-                        .latency_unit(tower_http::LatencyUnit::Millis),
-                ),
-        )
-        .layer(cors)
-        .with_state(pool);
+    let pool = sobrou_nada_pro_bet::db::init(&database_url).await;
+    let app = sobrou_nada_pro_bet::build_app(pool).await;
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".into());
     let addr = format!("0.0.0.0:{port}");
@@ -135,31 +69,4 @@ async fn main() {
     tracing::info!("Listening on http://{addr}");
 
     axum::serve(listener, app).await.unwrap();
-}
-
-fn build_cors() -> CorsLayer {
-    match std::env::var("CORS_ALLOWED_ORIGINS") {
-        Ok(origins) if !origins.is_empty() => {
-            let list: Vec<_> = origins
-                .split(',')
-                .map(|s| s.trim().parse().unwrap())
-                .collect();
-            CorsLayer::new()
-                .allow_origin(list)
-                .allow_methods(Any)
-                .allow_headers(Any)
-        }
-        _ => {
-            if std::env::var("ENVIRONMENT")
-                .map(|v| v == "production")
-                .unwrap_or(false)
-            {
-                tracing::warn!("CORS_ALLOWED_ORIGINS not set — all origins allowed");
-            }
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any)
-        }
-    }
 }
