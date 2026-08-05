@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createGroup, getInviteCode, joinGroup } from '../api/client';
+import { useToast } from './Toast';
 import type { Group } from '../types';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 
 export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
   const { groups, addGroup } = useAuth();
+  const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [newName, setNewName] = useState('');
@@ -44,7 +46,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       setShowCreate(false);
       setShowJoin(false);
     } catch {
-      alert('Failed to create group');
+      toast('Failed to create group');
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       setShowJoin(false);
       setShowCreate(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to join');
+      toast(err instanceof Error ? err.message : 'Failed to join');
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       const data = (await getInviteCode(selectedGroupId)) as { invite_code: string };
       setInviteLink(`${window.location.origin}?join=${data.invite_code}`);
     } catch {
-      alert('Failed to get invite link');
+      toast('Failed to get invite link');
     } finally {
       setLoading(false);
     }

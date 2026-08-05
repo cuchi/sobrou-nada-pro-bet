@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchBets } from './api/client';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './components/Toast';
 import type { Bet } from './types';
 import BetForm from './components/BetForm';
 import BetList from './components/BetList';
@@ -125,7 +126,18 @@ function AppContent() {
               groupName={selectedGroup.name}
               balance={selectedGroup.balance}
               bets={bets}
-              onBetCreated={() => { loadBets(); setTick(t => t + 1); }}
+              onBetCreated={(optimistic) => {
+                setBets(prev => [optimistic, ...prev]);
+              }}
+              onBetSettled={() => {
+                loadBets();
+                setTick(t => t + 1);
+              }}
+              onBetFailed={() => {
+                setBets(prev => prev.filter(b => !b.id.startsWith('optimistic-')));
+                loadBets();
+                setTick(t => t + 1);
+              }}
             />
             <Leaderboard groupId={selectedGroup.id} refreshKey={tick} />
           </>
@@ -161,7 +173,9 @@ export default function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );

@@ -145,8 +145,8 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 
 - [x] Loading spinners — animated spinner with optional label, replaces text-based "Loading..."
 - [x] Smooth transitions — fade-in on mount
-- [ ] Optimistic updates — reflect bet placement instantly, roll back on error
-- [ ] Toast notifications — success/error feedback instead of alert()
+- [x] Optimistic updates — reflect bet placement instantly, roll back on error
+- [x] Toast notifications — success/error feedback instead of alert(), auto-dismiss
 - [ ] Empty states — illustrations or messages for empty bet lists, groups, etc.
 - [ ] Error boundaries — catch component crashes gracefully
 - [ ] Offline indicator — show when backend is unreachable

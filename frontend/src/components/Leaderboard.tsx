@@ -6,9 +6,10 @@ import { Spinner } from './Spinner';
 export default function Leaderboard({ groupId, refreshKey }: { groupId: string; refreshKey: number }) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (initialLoad) setLoading(true);
     try {
       const data = (await fetchLeaderboard(groupId)) as LeaderboardEntry[];
       setEntries(data);
@@ -16,8 +17,9 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
       console.error('Failed to load leaderboard');
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
-  }, [groupId]);
+  }, [groupId, initialLoad]);
 
   useEffect(() => {
     load();

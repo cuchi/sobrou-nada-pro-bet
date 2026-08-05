@@ -8,6 +8,7 @@ interface Props {
   onSelect: (event: Event, prediction: Prediction, odds: number) => void;
   onEventChange?: () => void;
   bettedEventIds: Set<string>;
+  resetKey?: number;
 }
 
 function oddsLabel(ev: Event, pred: Prediction): string {
@@ -27,11 +28,16 @@ function TeamCrest({ name }: { name: string }) {
   );
 }
 
-export default function EventPicker({ onSelect, onEventChange, bettedEventIds }: Props) {
+export default function EventPicker({ onSelect, onEventChange, bettedEventIds, resetKey }: Props) {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSelectedId(null);
+    setPrediction(null);
+  }, [resetKey]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -130,6 +136,7 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds }:
         <div className="prediction-bar">
           <span className="prediction-label">Your pick:</span>
           <button
+            type="button"
             className={`btn-prediction ${prediction === 'home_win' ? 'active' : ''}`}
             onClick={() => handlePredictionSelect('home_win')}
           >
@@ -139,6 +146,7 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds }:
             )}
           </button>
           <button
+            type="button"
             className={`btn-prediction ${prediction === 'draw' ? 'active' : ''}`}
             onClick={() => handlePredictionSelect('draw')}
           >
@@ -148,6 +156,7 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds }:
             )}
           </button>
           <button
+            type="button"
             className={`btn-prediction ${prediction === 'away_win' ? 'active' : ''}`}
             onClick={() => handlePredictionSelect('away_win')}
           >

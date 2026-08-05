@@ -9,10 +9,12 @@ interface Props {
   groupName: string;
   balance: number;
   bets: Bet[];
-  onBetCreated: () => void;
+  onBetCreated: (optimistic: Bet) => void;
+  onBetSettled: () => void;
+  onBetFailed: () => void;
 }
 
-export default function BetForm({ groupId, groupName, balance, bets, onBetCreated }: Props) {
+export default function BetForm({ groupId, groupName, balance, bets, onBetCreated, onBetSettled, onBetFailed }: Props) {
   const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -20,6 +22,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerKey, setPickerKey] = useState(0);
 
   const bettedEventIds = useMemo(
     () => new Set(
@@ -70,6 +73,31 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
 
     setError(null);
     setLoading(true);
+
+    const optimistic: Bet = {
+      id: `optimistic-${Date.now()}`,
+      user_id: user?.id || '',
+      group_id: groupId,
+      event_id: selectedEvent.id,
+      prediction,
+      amount: Number(amount),
+      odds,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      user_name: user?.name || '',
+      user_email: '',
+      user_avatar_url: user?.avatar_url || null,
+      home_team: selectedEvent.home_team,
+      away_team: selectedEvent.away_team,
+    };
+
+    onBetCreated(optimistic);
+    setAmount('');
+    setOdds(0);
+    setSelectedEvent(null);
+    setPrediction(null);
+    setPickerKey(k => k + 1);
+
     try {
       await createBet({
         group_id: groupId,
@@ -78,12 +106,9 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
         amount: Number(amount),
         odds,
       });
-      setAmount('');
-      setOdds(0);
-      setSelectedEvent(null);
-      setPrediction(null);
-      onBetCreated();
+      onBetSettled();
     } catch (err) {
+      onBetFailed();
       setError(err instanceof Error ? err.message : 'Error creating bet');
     } finally {
       setLoading(false);
@@ -97,7 +122,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
         <span className="balance-pill">{balance.toFixed(0)} pts</span>
       </h2>
 
-      <EventPicker onSelect={handleSelect} onEventChange={handleEventChange} bettedEventIds={bettedEventIds} />
+      <EventPicker resetKey={pickerKey} onSelect={handleSelect} onEventChange={handleEventChange} bettedEventIds={bettedEventIds} />
 
       {selectedEvent && prediction && (
         <>
