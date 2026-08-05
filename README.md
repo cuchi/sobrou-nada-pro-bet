@@ -89,3 +89,11 @@ In production, this should be a cron job or background worker — not exposed to
 | Database | PostgreSQL 17 |
 | Auth | Google OAuth + JWT |
 | Match data | the-odds-api.com v4 |
+
+## Trivia
+
+The name **"Sobrou Nada Pro Bet"** is a pun on the Brazilian shitpost meme _"não sobrou nada pro beta"_ ("nothing left for the beta"). The original phrase — popular in shitposting circles — pokes fun at the "beta male" archetype: the naive guy who tries and fails, who puts in effort and ends up empty-handed. It's not meant to be taken seriously; it's a joke.
+
+![Sobrou nada pro beta](shitpost.png)
+
+This app swaps "beta" for "bet" — the English word for a wager. The joke works on two levels: literally, your points are gone after a bad round of bets; metaphorically, the name is a self-aware wink — a betting app that already warns you how this ends. It's a shitpost. Don't overthink it.
