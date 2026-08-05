@@ -4,6 +4,9 @@
 
 A cashless betting app for a closed beta — friends place points-based bets on Brazilian football matches (Brasileirão), compete in private groups, and climb the leaderboard.
 
+> 🤖 Built with [DeepSeek V4 Pro](https://deepseek.com) through agentic engineering.
+> Read the full story: [I Vibe-coded a Full-Stack App for \$2.96](https://cuchi.me/posts/vibe-coding/)
+
 ![Screenshot](screenshot.png)
 
 ## Prerequisites
@@ -83,6 +86,6 @@ In production, this should be a cron job or background worker — not exposed to
 |---|---|
 | Frontend | React 19, TypeScript 5.8, Vite 8 |
 | Backend | Rust, Axum 0.8, SQLx 0.8 |
-| Database | PostgreSQL 16 |
+| Database | PostgreSQL 17 |
 | Auth | Google OAuth + JWT |
 | Match data | the-odds-api.com v4 |

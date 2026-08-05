@@ -38,7 +38,7 @@ CORS_ALLOWED_ORIGINS=...      # Required in prod (already supported)
 |---|---|
 | Frontend | React 19, TypeScript 5.8, Vite 8 |
 | Backend | Rust (2024 edition), Axum 0.8, SQLx 0.9 |
-| Database | PostgreSQL 16 (via Docker Compose) |
+| Database | PostgreSQL 17 (via Docker Compose) |
 | Auth | Google OAuth 2.0 (implicit flow) + JWT |
 | Dev proxy | Vite proxies `/api` and `/health` to backend |
 

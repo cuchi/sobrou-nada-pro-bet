@@ -174,6 +174,7 @@ Current versions as of Aug 2026:
 | Node | 24.19 |
 | React | 19.2 |
 | Vite | 8.2 |
+| PostgreSQL | 17 |
 | TypeScript | 5.8 |
 | Axum | 0.8.9 |
 | SQLx | 0.9.0 |
