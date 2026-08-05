@@ -42,6 +42,53 @@ CORS_ALLOWED_ORIGINS=...      # Required in prod (already supported)
 | Auth | Google OAuth 2.0 (implicit flow) + JWT |
 | Dev proxy | Vite proxies `/api` and `/health` to backend |
 
+## Color Palette
+
+All colors are defined as CSS custom properties on `:root` in `App.css`.
+
+```
+── Backgrounds ──────────────────────────────────
+--bg-body:       #0b0e14    page background
+--bg-card:       #121721    event cards, bet list
+--bg-panel:      #181e2a    bet form, leaderboard panels
+--bg-hover:      #1c2331    card hover state
+--bg-input:      #161b26    form inputs, selects
+--bg-selected:   #1c2436    card selected state
+
+── Borders ─────────────────────────────────────
+--border-card:   #232d3f    card borders
+--border-input:  #2c374d    input borders
+--border-hover:  #3b485d    hover accent
+
+── Text ────────────────────────────────────────
+--text-body:     #f3f4f6    primary text
+--text-secondary:#9ca3af    secondary text
+--text-muted:    #6b7280    muted labels
+--text-dim:      #4b5563    dim text
+--text-subtle:   #374151    very subtle
+
+── Brand ───────────────────────────────────────
+--gold:          #f0c040    primary accent
+--gold-dark:     #785600    dark gold (active odds pill text)
+
+── Semantic ────────────────────────────────────
+--green:         #34d399    success / online
+--green-bg:      #0b2e21    success background
+--red:           #f87171    error / danger
+--red-bg:        #3b1418    error background
+--red-banner:    #fca5a5    error banner text
+--blue:          #60a5fa    selection / info
+--pending-bg:    #382d0c    pending badge background
+--dev-bg:        #2d2309    dev login button
+
+── Misc ────────────────────────────────────────
+--pill-bg:       rgba(255,255,255,0.05)   odds pill
+--pill-hover:    rgba(255,255,255,0.06)   odds pill hover
+--crest-shadow:  rgba(0,0,0,0.50)         crest drop-shadow
+--active-pill:   rgba(240,192,64,0.15)    active odds pill
+--podium-bg:     rgba(240,192,64,0.08)    podium row
+```
+
 ## Project Structure
 
 ```

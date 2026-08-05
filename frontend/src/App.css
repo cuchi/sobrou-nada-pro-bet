@@ -6,10 +6,47 @@
   padding: 0;
 }
 
+:root {
+  --bg-body:       #0b0e14;
+  --bg-card:       #121721;
+  --bg-panel:      #181e2a;
+  --bg-hover:      #1c2331;
+  --bg-input:      #161b26;
+  --bg-selected:   #1c2436;
+
+  --border-card:   #232d3f;
+  --border-input:  #2c374d;
+  --border-hover:  #3b485d;
+
+  --text-body:     #f3f4f6;
+  --text-secondary:#9ca3af;
+  --text-muted:    #6b7280;
+  --text-dim:      #4b5563;
+  --text-subtle:   #374151;
+
+  --gold:          #f0c040;
+  --gold-dark:     #785600;
+
+  --green:         #34d399;
+  --green-bg:      #0b2e21;
+  --red:           #f87171;
+  --red-bg:        #3b1418;
+  --red-banner:    #fca5a5;
+  --blue:          #60a5fa;
+  --pending-bg:    #382d0c;
+  --dev-bg:        #2d2309;
+
+  --pill-bg:       rgba(255, 255, 255, 0.05);
+  --pill-hover:    rgba(255, 255, 255, 0.06);
+  --crest-shadow:  rgba(0, 0, 0, 0.50);
+  --active-pill:   rgba(240, 192, 64, 0.15);
+  --podium-bg:     rgba(240, 192, 64, 0.08);
+}
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: #0f0f0f;
-  color: #e0e0e0;
+  background: var(--bg-body);
+  color: var(--text-body);
   min-height: 100vh;
 }
 
@@ -26,15 +63,15 @@ body {
 .spinner {
   width: 24px;
   height: 24px;
-  border: 2px solid #2a2a2a;
-  border-top-color: #f0c040;
+  border: 2px solid var(--bg-input);
+  border-top-color: var(--gold);
   border-radius: 50%;
   animation: spinner-rotate 0.6s linear infinite;
 }
 
 .spinner-label {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-dim);
 }
 
 @keyframes spinner-rotate {
@@ -74,12 +111,12 @@ header {
   gap: 0.75rem;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid var(--bg-input);
 }
 
 header h1 {
   font-size: 1.75rem;
-  color: #f0c040;
+  color: var(--gold);
 }
 
 .header-right {
@@ -95,18 +132,18 @@ header h1 {
 }
 
 .backend-status.online {
-  background: #1a3a1a;
-  color: #4ade80;
+  background: var(--green-bg);
+  color: var(--green);
 }
 
 .backend-status.offline {
-  background: #3a1a1a;
-  color: #f87171;
+  background: var(--red-bg);
+  color: var(--red);
 }
 
 .auth-loading {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-dim);
 }
 
 .user-info {
@@ -124,14 +161,14 @@ header h1 {
 
 .user-name {
   font-size: 0.9rem;
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 .btn-logout {
   padding: 0.25rem 0.75rem;
   background: transparent;
-  color: #888;
-  border: 1px solid #3a3a3a;
+  color: var(--text-muted);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
@@ -139,15 +176,15 @@ header h1 {
 }
 
 .btn-logout:hover {
-  color: #f87171;
-  border-color: #f87171;
+  color: var(--red);
+  border-color: var(--red);
 }
 
 .login-prompt {
   text-align: center;
-  color: #666;
+  color: var(--text-dim);
   padding: 1.5rem;
-  background: #1a1a1a;
+  background: var(--bg-panel);
   border-radius: 12px;
   margin-bottom: 2rem;
 }
@@ -158,17 +195,17 @@ header h1 {
   align-items: center;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
-  background: #3a1a1a;
-  border: 1px solid #f87171;
+  background: var(--red-bg);
+  border: 1px solid var(--red);
   border-radius: 8px;
-  color: #fca5a5;
+  color: var(--red-banner);
   font-size: 0.9rem;
 }
 
 .banner-dismiss {
   background: none;
   border: none;
-  color: #f87171;
+  color: var(--red);
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0 0.25rem;
@@ -194,9 +231,9 @@ header h1 {
 .group-select {
   flex: 1 1 180px;
   min-width: 0;
-  background: #2a2a2a;
-  color: #e0e0e0;
-  border: 1px solid #3a3a3a;
+  background: var(--bg-input);
+  color: var(--text-body);
+  border: 1px solid var(--border-input);
   padding: 0.5rem 2rem 0.5rem 0.75rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -209,8 +246,8 @@ header h1 {
 .btn-group-action {
   padding: 0.5rem 0.75rem;
   background: transparent;
-  color: #888;
-  border: 1px solid #3a3a3a;
+  color: var(--text-muted);
+  border: 1px solid var(--border-input);
   border-radius: 8px;
   font-size: 0.8rem;
   cursor: pointer;
@@ -219,15 +256,15 @@ header h1 {
 }
 
 .btn-group-action:hover {
-  color: #ccc;
-  border-color: #555;
+  color: var(--text-secondary);
+  border-color: var(--text-subtle);
 }
 
 .btn-invite {
   padding: 0.5rem 0.75rem;
   background: transparent;
-  color: #888;
-  border: 1px solid #3a3a3a;
+  color: var(--text-muted);
+  border: 1px solid var(--border-input);
   border-radius: 8px;
   font-size: 0.8rem;
   cursor: pointer;
@@ -235,7 +272,7 @@ header h1 {
 }
 
 .btn-invite:hover {
-  color: #f0c040;
+  color: var(--gold);
 }
 
 .inline-form {
@@ -246,9 +283,9 @@ header h1 {
 
 .inline-form input {
   flex: 1;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  color: #e0e0e0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  color: var(--text-body);
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -256,8 +293,8 @@ header h1 {
 
 .inline-form button {
   padding: 0.5rem 0.75rem;
-  background: #f0c040;
-  color: #0f0f0f;
+  background: var(--gold);
+  color: var(--bg-body);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -268,8 +305,8 @@ header h1 {
 .btn-cancel {
   padding: 0.5rem 0.75rem;
   background: transparent;
-  color: #888;
-  border: 1px solid #3a3a3a;
+  color: var(--text-muted);
+  border: 1px solid var(--border-input);
   border-radius: 8px;
   font-size: 0.85rem;
   cursor: pointer;
@@ -277,7 +314,7 @@ header h1 {
 }
 
 .btn-cancel:hover {
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 .invite-link-bar {
@@ -286,22 +323,22 @@ header h1 {
   gap: 0.5rem;
   align-items: center;
   padding: 0.5rem;
-  background: #1a1a1a;
+  background: var(--bg-panel);
   border-radius: 8px;
 }
 
 .invite-link-bar code {
   flex: 1;
   font-size: 0.75rem;
-  color: #aaa;
+  color: var(--text-secondary);
   word-break: break-all;
 }
 
 .invite-link-bar button {
   padding: 0.25rem 0.6rem;
-  background: #2a2a2a;
-  color: #ccc;
-  border: 1px solid #3a3a3a;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
@@ -310,7 +347,7 @@ header h1 {
 .btn-invite-close {
   padding: 0.15rem 0.4rem;
   background: transparent;
-  color: #888;
+  color: var(--text-muted);
   border: none;
   font-size: 1rem;
   cursor: pointer;
@@ -318,14 +355,14 @@ header h1 {
 }
 
 .btn-invite-close:hover {
-  color: #f87171;
+  color: var(--red);
 }
 
 .btn-dev-login {
   padding: 0.5rem 1rem;
-  background: #3a2a00;
-  color: #f0c040;
-  border: 1px dashed #f0c040;
+  background: var(--dev-bg);
+  color: var(--gold);
+  border: 1px dashed var(--gold);
   border-radius: 8px;
   font-size: 0.85rem;
   cursor: pointer;
@@ -334,7 +371,7 @@ header h1 {
 /* ---- Bet form ---- */
 
 .bet-form {
-  background: #1a1a1a;
+  background: var(--bg-panel);
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
@@ -347,19 +384,19 @@ header h1 {
 .bet-form h2 {
   width: 100%;
   font-size: 1.1rem;
-  color: #aaa;
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .bet-form h2 strong {
-  color: #f0c040;
+  color: var(--gold);
 }
 
 .balance-pill {
   margin-left: 0.5rem;
   font-size: 0.8rem;
-  background: #2a2a0a;
-  color: #f0c040;
+  background: var(--pending-bg);
+  color: var(--gold);
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   font-weight: 600;
@@ -375,9 +412,9 @@ header h1 {
 .bet-inputs input {
   flex: 1 1 100px;
   min-width: 0;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  color: #e0e0e0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  color: var(--text-body);
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -385,15 +422,15 @@ header h1 {
 
 .bet-inputs input:focus {
   outline: none;
-  border-color: #f0c040;
+  border-color: var(--gold);
 }
 
 .bet-form button {
   flex: 0 0 auto;
   padding: 0.6rem 1.5rem;
-  background: #f0c040;
-  color: #111;
-  border: 1px solid #f0c040;
+  background: var(--gold);
+  color: var(--bg-body);
+  border: 1px solid var(--gold);
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
@@ -412,7 +449,7 @@ header h1 {
 
 .bet-error {
   width: 100%;
-  color: #f87171;
+  color: var(--red);
   font-size: 0.85rem;
 }
 
@@ -425,13 +462,13 @@ header h1 {
 
 .event-picker-heading {
   font-size: 0.9rem;
-  color: #888;
+  color: var(--text-muted);
   font-weight: 400;
   margin-bottom: 0.75rem;
 }
 
 .no-events {
-  color: #666;
+  color: var(--text-dim);
   font-size: 0.85rem;
   text-align: center;
   padding: 1rem;
@@ -443,15 +480,17 @@ header h1 {
   gap: 0.4rem;
   max-height: 420px;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  padding: 0.5rem 0.25rem 0.5rem 0;
   scrollbar-width: thin;
-  scrollbar-color: #333 transparent;
+  scrollbar-color: var(--border-card) transparent;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 2%, black 98%, transparent 100%);
 }
 
 .events-grid::-webkit-scrollbar { width: 5px; }
 .events-grid::-webkit-scrollbar-track { background: transparent; }
-.events-grid::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-.events-grid::-webkit-scrollbar-thumb:hover { background: #555; }
+.events-grid::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 3px; }
+.events-grid::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
 
 /* ---- Event card ---- */
 
@@ -461,39 +500,35 @@ header h1 {
   align-items: center;
   gap: 0.4rem 0.6rem;
   padding: 0.5rem 0.85rem;
-  background: #1a1d23;
-  border: 1px solid #252830;
-  border-left: 3px solid transparent;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: border-left-color 0.15s, background 0.15s;
-  color: #aaa;
+  transition: background 0.15s;
+  color: var(--text-secondary);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
 }
 
 .event-card:hover {
-  background: #1f2329;
-  border-left-color: #444;
+  background: var(--bg-hover);
 }
 
 .event-card.selected {
-  border-left-color: #4a9eff;
-  background: #1a1f2e;
-  border-color: #2a3044;
+  background: var(--bg-selected);
+  border-color: var(--border-hover);
 }
 
 /* Prevent bet-form button styles leaking onto event cards */
 .bet-form .event-card,
 .bet-form .event-card:hover,
 .bet-form .event-card.selected {
-  background: #1a1d23;
-  color: #aaa;
-  border: 1px solid #252830;
-  border-left: 3px solid transparent;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
   padding: 0.5rem 0.85rem;
   font-size: inherit;
   font-weight: inherit;
@@ -501,14 +536,12 @@ header h1 {
 }
 
 .bet-form .event-card:hover {
-  background: #1f2329;
-  border-left-color: #444;
+  background: var(--bg-hover);
 }
 
 .bet-form .event-card.selected {
-  background: #1a1f2e;
-  border-left-color: #4a9eff;
-  border-color: #2a3044;
+  background: var(--bg-selected);
+  border-color: var(--border-hover);
 }
 
 .event-card.betted {
@@ -525,16 +558,16 @@ header h1 {
   justify-content: center;
   font-size: 0.65rem;
   font-weight: 700;
-  color: #111;
+  color: var(--bg-body);
   flex-shrink: 0;
   object-fit: contain;
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6));
+  filter: drop-shadow(0 0 2px var(--crest-shadow));
 }
 
 .team-name {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #aaa;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -546,7 +579,7 @@ header h1 {
 .team-name.away { text-align: left;  grid-column: 3; }
 
 .event-card.selected .team-name {
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 .matchup-core {
@@ -559,7 +592,7 @@ header h1 {
 
 .vs-label {
   font-size: 0.7rem;
-  color: #555;
+  color: var(--text-subtle);
   flex-shrink: 0;
 }
 
@@ -573,10 +606,10 @@ header h1 {
 .odd-badge {
   display: inline-block;
   padding: 0.15rem 0.4rem;
-  background: #252830;
+  background: var(--border-card);
   border-radius: 4px;
   font-size: 0.7rem;
-  color: #888;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   width: 3rem;
   text-align: center;
@@ -595,7 +628,7 @@ header h1 {
 .event-date,
 .event-time {
   font-size: 0.65rem;
-  color: #888;
+  color: var(--text-muted);
   line-height: 1;
   white-space: nowrap;
 }
@@ -607,13 +640,13 @@ header h1 {
   gap: 0.5rem;
   align-items: center;
   padding: 0.75rem;
-  background: #1a1a1a;
+  background: var(--bg-panel);
   border-radius: 8px;
   margin-top: 0.5rem;
 }
 
 .prediction-label {
-  color: #888;
+  color: var(--text-muted);
   font-size: 0.8rem;
   flex-shrink: 0;
 }
@@ -622,57 +655,58 @@ header h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.4rem 0.6rem;
-  background: #2a2a2a;
-  color: #aaa;
-  border: 1px solid #3a3a3a;
-  border-radius: 6px;
-  font-size: 0.78rem;
+  gap: 0.2rem;
+  padding: 0.6rem 1rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 0;
 }
 
 .prediction-team {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .prediction-odds {
   display: inline-block;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.6rem;
-  color: #666;
-  background: rgba(255, 255, 255, 0.06);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
   border-radius: 999px;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .btn-prediction:hover {
-  border-color: #555;
-}
-
-.btn-prediction:hover .prediction-odds {
-  color: #888;
-  background: rgba(255, 255, 255, 0.1);
+  opacity: 0.8;
 }
 
 .btn-prediction.active {
-  background: #2a2a0a;
-  color: #f0c040;
-  border-color: #f0c040;
+  background: var(--bg-card);
+  color: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
 }
 
 .btn-prediction.active .prediction-odds {
-  color: #6b4c00;
-  background: rgba(0, 0, 0, 0.12);
+  color: var(--gold-dark);
+  background: var(--active-pill);
 }
 
 /* ---- Leaderboard ---- */
 
 .leaderboard {
-  background: #1a1a1a;
+  background: var(--bg-panel);
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 2rem;
@@ -681,7 +715,7 @@ header h1 {
 .leaderboard h2 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 .leaderboard table {
@@ -689,15 +723,15 @@ header h1 {
 }
 
 .leaderboard th:first-child { width: 2.5rem; }
-.leaderboard th:nth-child(3) { width: 5rem; }
-.leaderboard th:nth-child(4) { width: 4.5rem; }
+.leaderboard th:nth-child(3) { width: 6rem; }
+.leaderboard th:nth-child(4) { width: 5.5rem; }
 
 .rank-cell {
   font-size: 1.1rem;
 }
 
 .podium-row {
-  background: rgba(240, 192, 64, 0.05);
+  background: var(--podium-bg);
 }
 
 .lb-avatar {
@@ -723,13 +757,13 @@ header h1 {
 
 .balance-cell {
   font-size: 0.95rem;
-  color: #f0c040;
+  color: var(--gold);
   white-space: nowrap;
 }
 
 .betted-cell {
   font-size: 0.8rem;
-  color: #f87171;
+  color: var(--red);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -737,7 +771,7 @@ header h1 {
 .leaderboard h2 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 /* ---- Bet list ---- */
@@ -756,11 +790,11 @@ th, td {
   padding: 0.75rem;
   text-align: left;
   vertical-align: middle;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid var(--bg-input);
 }
 
 th {
-  color: #888;
+  color: var(--text-muted);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -768,7 +802,7 @@ th {
 }
 
 .empty {
-  color: #666;
+  color: var(--text-dim);
   text-align: center;
   padding: 3rem 0;
 }
@@ -791,8 +825,8 @@ th {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #333;
-  color: #aaa;
+  background: var(--border-card);
+  color: var(--text-secondary);
   font-size: 0.65rem;
   font-weight: 600;
   border-radius: 50%;
@@ -804,20 +838,20 @@ th {
 
 .event-teams-small {
   font-size: 0.85rem;
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 .no-event {
-  color: #555;
+  color: var(--text-subtle);
 }
 
 .prediction-tag {
   display: inline-block;
   padding: 0.15rem 0.5rem;
-  background: #2a2a2a;
+  background: var(--bg-input);
   border-radius: 4px;
   font-size: 0.75rem;
-  color: #aaa;
+  color: var(--text-secondary);
 }
 
 .status-badge {
@@ -830,18 +864,18 @@ th {
 }
 
 .status-pending .status-badge {
-  background: #2a2a0a;
-  color: #f0c040;
+  background: var(--pending-bg);
+  color: var(--gold);
 }
 
 .status-won .status-badge {
-  background: #1a3a1a;
-  color: #4ade80;
+  background: var(--green-bg);
+  color: var(--green);
 }
 
 .status-lost .status-badge {
-  background: #3a1a1a;
-  color: #f87171;
+  background: var(--red-bg);
+  color: var(--red);
 }
 
 /* ---- Footer ---- */
@@ -849,20 +883,20 @@ th {
 .app-footer {
   margin-top: 3rem;
   padding-top: 1rem;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--bg-input);
   text-align: center;
   font-size: 0.75rem;
-  color: #555;
+  color: var(--text-subtle);
 }
 
 .footer-link {
-  color: #888;
+  color: var(--text-muted);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .footer-link:hover {
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 .footer-sep {
@@ -870,7 +904,7 @@ th {
 }
 
 .footer-text {
-  color: #555;
+  color: var(--text-subtle);
 }
 
 /* ---- Responsive ---- */
@@ -996,5 +1030,6 @@ th {
 
   .events-grid {
     max-height: 320px;
+    padding-right: 0.5rem;
   }
 }
