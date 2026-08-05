@@ -1,4 +1,4 @@
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use jsonwebtoken::{DecodingKey, Validation, decode};
 
 use crate::error::AppError;
 use crate::models::JwtClaims;
@@ -22,9 +22,7 @@ where
         parts: &mut axum::http::request::Parts,
         _state: &S,
     ) -> Result<Self, Self::Rejection> {
-        // Read JWT secret from env (lazy — cached in practice, but fine for dev)
-        let secret = std::env::var("JWT_SECRET")
-            .map_err(|_| AppError::Internal("JWT_SECRET not set".into()))?;
+        let secret = &crate::env::ENV.jwt_secret;
 
         let header = parts
             .headers

@@ -21,8 +21,7 @@ where
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let expected = std::env::var("ADMIN_TOKEN")
-            .map_err(|_| AppError::Internal("ADMIN_TOKEN not set".into()))?;
+        let expected = &crate::env::ENV.admin_token;
 
         let provided = parts
             .headers
@@ -38,14 +37,127 @@ where
     }
 }
 
+// ── Data types ─────────────────────────────────────────
+
+struct ParsedMatch {
+    external_id: String,
+    home_team: String,
+    away_team: String,
+    championship: String,
+    start_time: chrono::DateTime<chrono::Utc>,
+    status: &'static str,
+    home_odds: Option<f64>,
+    draw_odds: Option<f64>,
+    away_odds: Option<f64>,
+}
+
+struct FinishedMatch {
+    external_id: String,
+    home_score: i32,
+    away_score: i32,
+}
+
+// ── Pure parsing helpers ───────────────────────────────
+
+/// Extract odds from the first h2h market of the first bookmaker.
+fn extract_odds(
+    m: &serde_json::Value,
+    home: &str,
+    away: &str,
+) -> (Option<f64>, Option<f64>, Option<f64>) {
+    let fold_outcome = |(h, d, a): (Option<f64>, Option<f64>, Option<f64>),
+                        o: &serde_json::Value| {
+        let name = o["name"].as_str().unwrap_or("");
+        let price = o["price"].as_f64();
+        match name {
+            n if n == home => (price, d, a),
+            n if n == away => (h, d, price),
+            n if n.eq_ignore_ascii_case("draw") => (h, price, a),
+            _ => (h, d, a),
+        }
+    };
+
+    m["bookmakers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|bm| bm["markets"].as_array())
+        .flatten()
+        .find(|market| market["key"].as_str() == Some("h2h"))
+        .and_then(|market| market["outcomes"].as_array())
+        .map(|outcomes| outcomes.iter().fold((None, None, None), fold_outcome))
+        .unwrap_or((None, None, None))
+}
+
+fn parse_match_odds(m: &serde_json::Value) -> Option<ParsedMatch> {
+    let external_id = m["id"].as_str().filter(|s| !s.is_empty())?.to_string();
+    let home_team = m["home_team"].as_str().unwrap_or("TBD").to_string();
+    let away_team = m["away_team"].as_str().unwrap_or("TBD").to_string();
+    let championship = m["sport_title"]
+        .as_str()
+        .unwrap_or("Brazil Série A")
+        .to_string();
+
+    let start_time = m["commence_time"]
+        .as_str()
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .unwrap_or_else(|| chrono::Utc::now());
+
+    let status = if start_time > chrono::Utc::now() {
+        "scheduled"
+    } else {
+        "live"
+    };
+
+    let (home_odds, draw_odds, away_odds) = extract_odds(m, &home_team, &away_team);
+
+    tracing::info!(%home_team, %away_team, ?home_odds, ?draw_odds, ?away_odds, "Match with odds");
+
+    Some(ParsedMatch {
+        external_id,
+        home_team,
+        away_team,
+        championship,
+        start_time,
+        status,
+        home_odds,
+        draw_odds,
+        away_odds,
+    })
+}
+
+fn outcome(home: i32, away: i32) -> &'static str {
+    match home.cmp(&away) {
+        std::cmp::Ordering::Greater => "home_win",
+        std::cmp::Ordering::Less => "away_win",
+        std::cmp::Ordering::Equal => "draw",
+    }
+}
+
+fn parse_finished_match(m: &serde_json::Value) -> Option<FinishedMatch> {
+    let external_id = m["id"].as_str().filter(|s| !s.is_empty())?.to_string();
+    let completed = m["completed"].as_bool().unwrap_or(false);
+    if !completed {
+        return None;
+    }
+    let scores = &m["scores"];
+    let home = scores["home_score"].as_i64().map(|s| s as i32)?;
+    let away = scores["away_score"].as_i64().map(|s| s as i32)?;
+    Some(FinishedMatch {
+        external_id,
+        home_score: home,
+        away_score: away,
+    })
+}
+
 // ── Handlers ───────────────────────────────────────────
 
 pub async fn sync_events(
     _auth: AdminAuth,
     State(pool): State<PgPool>,
 ) -> Result<Json<Value>, AppError> {
-    let api_key = std::env::var("ODDS_API_KEY")
-        .map_err(|_| AppError::Internal("ODDS_API_KEY not set".into()))?;
+    let api_key = crate::env::ENV.odds_api_key.clone()?;
 
     let client = reqwest::Client::new();
     let sport = "soccer_brazil_campeonato";
@@ -71,64 +183,17 @@ pub async fn sync_events(
 /// Process odds JSON (callable from tests without API key)
 pub async fn process_odds(pool: &PgPool, raw: &serde_json::Value) -> Result<Json<Value>, AppError> {
     let empty = vec![];
-    let matches = raw.as_array().unwrap_or(&empty);
+    let matches: Vec<_> = raw
+        .as_array()
+        .unwrap_or(&empty)
+        .iter()
+        .filter_map(parse_match_odds)
+        .collect();
+
+    let total_fetched = matches.len();
     let mut inserted = 0;
 
-    for m in matches {
-        let external_id = m["id"].as_str().unwrap_or("").to_string();
-        if external_id.is_empty() {
-            continue;
-        }
-
-        let home_team = m["home_team"].as_str().unwrap_or("TBD");
-        let away_team = m["away_team"].as_str().unwrap_or("TBD");
-        let championship = m["sport_title"].as_str().unwrap_or("Brazil Série A");
-
-        let start_time_str = m["commence_time"].as_str().unwrap_or("");
-        let start_time = chrono::DateTime::parse_from_rfc3339(start_time_str)
-            .map(|dt| dt.with_timezone(&chrono::Utc))
-            .unwrap_or_else(|_| chrono::Utc::now());
-
-        let status = if start_time > chrono::Utc::now() {
-            "scheduled"
-        } else {
-            "live"
-        };
-
-        let mut home_odds: Option<f64> = None;
-        let mut draw_odds: Option<f64> = None;
-        let mut away_odds: Option<f64> = None;
-
-        if let Some(bookmakers) = m["bookmakers"].as_array() {
-            for bm in bookmakers {
-                if let Some(markets) = bm["markets"].as_array() {
-                    for market in markets {
-                        if market["key"].as_str() == Some("h2h") {
-                            if let Some(outcomes) = market["outcomes"].as_array() {
-                                for o in outcomes {
-                                    let name = o["name"].as_str().unwrap_or("");
-                                    let price = o["price"].as_f64();
-                                    if name == home_team {
-                                        home_odds = price;
-                                    } else if name == away_team {
-                                        away_odds = price;
-                                    } else if name.to_lowercase() == "draw" {
-                                        draw_odds = price;
-                                    }
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-                if home_odds.is_some() {
-                    break;
-                }
-            }
-        }
-
-        tracing::info!(%home_team, %away_team, ?home_odds, ?draw_odds, ?away_odds, "Match with odds");
-
+    for m in &matches {
         let result = sqlx::query(
             r#"INSERT INTO events (external_id, home_team, away_team, championship, start_time, status, home_score, away_score, home_odds, draw_odds, away_odds, raw_data)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -140,18 +205,24 @@ pub async fn process_odds(pool: &PgPool, raw: &serde_json::Value) -> Result<Json
                    start_time = EXCLUDED.start_time,
                    raw_data = EXCLUDED.raw_data"#,
         )
-        .bind(&external_id)
-        .bind(home_team)
-        .bind(away_team)
-        .bind(championship)
-        .bind(start_time)
-        .bind(status)
+        .bind(&m.external_id)
+        .bind(&m.home_team)
+        .bind(&m.away_team)
+        .bind(&m.championship)
+        .bind(m.start_time)
+        .bind(m.status)
         .bind::<Option<i32>>(None)
         .bind::<Option<i32>>(None)
-        .bind(home_odds)
-        .bind(draw_odds)
-        .bind(away_odds)
-        .bind(Some(m.clone()))
+        .bind(m.home_odds)
+        .bind(m.draw_odds)
+        .bind(m.away_odds)
+        .bind(json!({
+            "id": m.external_id,
+            "home_team": m.home_team,
+            "away_team": m.away_team,
+            "sport_title": m.championship,
+            "commence_time": m.start_time.to_rfc3339(),
+        }))
         .execute(pool)
         .await;
 
@@ -160,11 +231,11 @@ pub async fn process_odds(pool: &PgPool, raw: &serde_json::Value) -> Result<Json
         }
     }
 
-    tracing::info!(inserted, total = matches.len(), "Admin sync complete");
+    tracing::info!(inserted, total_fetched, "Admin sync complete");
 
     Ok(Json(json!({
         "inserted": inserted,
-        "total_fetched": matches.len()
+        "total_fetched": total_fetched,
     })))
 }
 
@@ -173,8 +244,7 @@ pub async fn resolve_bets(
     _auth: AdminAuth,
     State(pool): State<PgPool>,
 ) -> Result<Json<Value>, AppError> {
-    let api_key = std::env::var("ODDS_API_KEY")
-        .map_err(|_| AppError::Internal("ODDS_API_KEY not set".into()))?;
+    let api_key = crate::env::ENV.odds_api_key.clone()?;
 
     let client = reqwest::Client::new();
     let sport = "soccer_brazil_campeonato";
@@ -201,98 +271,110 @@ pub async fn process_scores(
     raw: &serde_json::Value,
 ) -> Result<Json<Value>, AppError> {
     let empty = vec![];
-    let matches = raw.as_array().unwrap_or(&empty);
+    let finished: Vec<_> = raw
+        .as_array()
+        .unwrap_or(&empty)
+        .iter()
+        .filter_map(parse_finished_match)
+        .collect();
+
     let mut resolved = 0;
     let mut updated_scores = 0;
 
-    for m in matches {
-        let external_id = m["id"].as_str().unwrap_or("").to_string();
-        if external_id.is_empty() {
+    for m in &finished {
+        // Update event scores
+        let result = sqlx::query(
+            "UPDATE events SET status = 'finished', home_score = $1, away_score = $2 WHERE external_id = $3",
+        )
+        .bind(m.home_score)
+        .bind(m.away_score)
+        .bind(&m.external_id)
+        .execute(pool)
+        .await;
+
+        if let Ok(ref r) = result {
+            updated_scores += r.rows_affected() as usize;
+        }
+
+        // Fetch pending bets for this event
+        let bet_outcome = outcome(m.home_score, m.away_score);
+
+        let bets: Vec<(uuid::Uuid, uuid::Uuid, uuid::Uuid, String, f64, f64)> = sqlx::query_as(
+            r#"SELECT b.id, b.user_id, b.group_id, b.prediction, b.amount, b.odds
+               FROM bets b
+               JOIN events e ON e.id = b.event_id
+               WHERE e.external_id = $1 AND b.status = 'pending'"#,
+        )
+        .bind(&m.external_id)
+        .fetch_all(pool)
+        .await
+        .unwrap_or_default();
+
+        if bets.is_empty() {
             continue;
         }
 
-        let completed = m["completed"].as_bool().unwrap_or(false);
-        let scores = &m["scores"];
+        // Separate winners from losers
+        let (winners, losers): (Vec<_>, Vec<_>) = bets
+            .iter()
+            .partition(|(_, _, _, prediction, _, _)| prediction.as_str() == bet_outcome);
 
-        // Update event status and scores in DB
-        if completed {
-            let home_score = scores["home_score"].as_i64().map(|s| s as i32);
-            let away_score = scores["away_score"].as_i64().map(|s| s as i32);
+        // Batch-update bet statuses inside a transaction
+        let mut tx = pool
+            .begin()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-            if let (Some(hs), Some(as_)) = (home_score, away_score) {
-                let updated = sqlx::query(
-                    "UPDATE events SET status = 'finished', home_score = $1, away_score = $2 WHERE external_id = $3",
-                )
-                .bind(home_score)
-                .bind(away_score)
-                .bind(&external_id)
-                .execute(pool)
-                .await;
-
-                if let Ok(r) = updated {
-                    updated_scores += r.rows_affected() as usize;
-                }
-
-                // Resolve pending bets for this event
-                let outcome = if hs > as_ {
-                    "home_win"
-                } else if as_ > hs {
-                    "away_win"
-                } else {
-                    "draw"
-                };
-
-                let bets: Vec<(uuid::Uuid, uuid::Uuid, String, f64, f64)> = sqlx::query_as(
-                    "SELECT b.id, b.user_id, b.prediction, b.amount, b.odds FROM bets b JOIN events e ON e.id = b.event_id WHERE e.external_id = $1 AND b.status = 'pending'",
-                )
-                .bind(&external_id)
-                .fetch_all(pool)
+        for (bet_id, _, _, _, _, _) in &losers {
+            sqlx::query("UPDATE bets SET status = 'lost' WHERE id = $1")
+                .bind(bet_id)
+                .execute(&mut *tx)
                 .await
-                .unwrap_or_default();
-
-                for (bet_id, user_id, prediction, amount, odds) in &bets {
-                    let won = prediction.as_str() == outcome;
-                    let new_status = if won { "won" } else { "lost" };
-
-                    sqlx::query("UPDATE bets SET status = $1::VARCHAR WHERE id = $2")
-                        .bind(new_status)
-                        .bind(bet_id)
-                        .execute(pool)
-                        .await
-                        .ok();
-
-                    if won {
-                        let payout = amount * odds;
-                        sqlx::query(
-                            "UPDATE group_members SET balance = balance + $1 WHERE user_id = $2 AND group_id = (SELECT group_id FROM bets WHERE id = $3)",
-                        )
-                        .bind(payout)
-                        .bind(user_id)
-                        .bind(bet_id)
-                        .execute(pool)
-                        .await
-                        .ok();
-                    }
-
-                    resolved += 1;
-
-                    tracing::info!(
-                        bet_id = %bet_id,
-                        user_id = %user_id,
-                        prediction = %prediction,
-                        outcome,
-                        won,
-                        "Bet resolved"
-                    );
-                }
-            }
+                .ok();
         }
+
+        for (bet_id, user_id, group_id, _, amount, odds) in &winners {
+            let payout = amount * odds;
+
+            sqlx::query("UPDATE bets SET status = 'won' WHERE id = $1")
+                .bind(bet_id)
+                .execute(&mut *tx)
+                .await
+                .ok();
+
+            sqlx::query(
+                "UPDATE group_members SET balance = balance + $1 WHERE user_id = $2 AND group_id = $3",
+            )
+            .bind(payout)
+            .bind(user_id)
+            .bind(group_id)
+            .execute(&mut *tx)
+            .await
+            .ok();
+        }
+
+        tx.commit()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        for (bet_id, _, _, prediction, _, _) in &bets {
+            let won = prediction.as_str() == bet_outcome;
+            tracing::info!(
+                bet_id = %bet_id,
+                prediction = %prediction,
+                outcome = bet_outcome,
+                won,
+                "Bet resolved"
+            );
+        }
+
+        resolved += bets.len();
     }
 
     tracing::info!(resolved, updated_scores, "Resolve complete");
 
     Ok(Json(json!({
         "resolved": resolved,
-        "updated_scores": updated_scores
+        "updated_scores": updated_scores,
     })))
 }

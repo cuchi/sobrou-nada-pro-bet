@@ -19,10 +19,7 @@ pub async fn google_login(
     State(pool): State<PgPool>,
     Json(body): Json<GoogleAuthRequest>,
 ) -> Result<Json<Value>, AppError> {
-    let client_id = std::env::var("GOOGLE_CLIENT_ID").map_err(|e| {
-        tracing::error!("GOOGLE_CLIENT_ID not set: {e}");
-        AppError::Internal("GOOGLE_CLIENT_ID not set".into())
-    })?;
+    let client_id = crate::env::ENV.google_client_id.clone()?;
 
     tracing::debug!("Calling Google tokeninfo...");
 
@@ -109,10 +106,7 @@ pub async fn google_login(
 
     tracing::info!(user_id=%user.id, "User upserted");
 
-    let jwt_secret = std::env::var("JWT_SECRET").map_err(|e| {
-        tracing::error!("JWT_SECRET not set: {e}");
-        AppError::Internal("JWT_SECRET not set".into())
-    })?;
+    let jwt_secret = &crate::env::ENV.jwt_secret;
 
     let now = Utc::now().timestamp() as usize;
     let claims = JwtClaims {
@@ -170,11 +164,7 @@ pub async fn me(
 /// POST /api/dev/login — creates a random test user and returns a JWT.
 /// Only works when ENVIRONMENT is not "production".
 pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppError> {
-    let is_prod = std::env::var("ENVIRONMENT")
-        .map(|v| v == "production")
-        .unwrap_or(false);
-
-    if is_prod {
+    if crate::env::ENV.is_prod() {
         return Err(AppError::NotFound("Not found".into()));
     }
 
@@ -206,10 +196,7 @@ pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppErr
     .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
 
     // Generate JWT
-    let jwt_secret = std::env::var("JWT_SECRET").map_err(|e| {
-        tracing::error!("JWT_SECRET not set: {e}");
-        AppError::Internal("JWT_SECRET not set".into())
-    })?;
+    let jwt_secret = &crate::env::ENV.jwt_secret;
 
     let now = Utc::now().timestamp() as usize;
     let claims = JwtClaims {

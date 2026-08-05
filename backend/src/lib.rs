@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod db;
+pub mod env;
 pub mod error;
 pub mod models;
 pub mod routes;
@@ -84,8 +85,8 @@ mod main {
     }
 
     fn build_cors() -> CorsLayer {
-        match std::env::var("CORS_ALLOWED_ORIGINS") {
-            Ok(origins) if !origins.is_empty() => {
+        match &crate::env::ENV.cors_allowed_origins {
+            Some(origins) => {
                 let list: Vec<_> = origins
                     .split(',')
                     .map(|s| s.trim().parse().unwrap())
@@ -95,11 +96,8 @@ mod main {
                     .allow_methods(Any)
                     .allow_headers(Any)
             }
-            _ => {
-                if std::env::var("ENVIRONMENT")
-                    .map(|v| v == "production")
-                    .unwrap_or(false)
-                {
+            None => {
+                if crate::env::ENV.is_prod() {
                     tracing::warn!("CORS_ALLOWED_ORIGINS not set — all origins allowed");
                 }
                 CorsLayer::new()
