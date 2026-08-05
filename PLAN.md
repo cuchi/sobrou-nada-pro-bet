@@ -143,8 +143,8 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 
 ## Phase 9 — SPA polish 🔲
 
-- [ ] Loading skeletons — shimmer placeholders while data fetches
-- [ ] Smooth transitions — fade-in on mount, slide between views
+- [x] Loading spinners — animated spinner with optional label, replaces text-based "Loading..."
+- [x] Smooth transitions — fade-in on mount
 - [ ] Optimistic updates — reflect bet placement instantly, roll back on error
 - [ ] Toast notifications — success/error feedback instead of alert()
 - [ ] Empty states — illustrations or messages for empty bet lists, groups, etc.

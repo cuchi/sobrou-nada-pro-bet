@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchEvents } from '../api/client';
 import { getCrestUrl, getTeamColor, getInitials } from '../crests';
 import type { Event, Prediction } from '../types';
+import { Spinner } from './Spinner';
 
 interface Props {
   onSelect: (event: Event, prediction: Prediction, odds: number) => void;
@@ -69,7 +70,12 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds }:
     }
   };
 
-  if (loading) return <p className="event-picker-loading">Loading events...</p>;
+  if (loading) return (
+    <div className="event-picker">
+      <h3 className="event-picker-heading">Upcoming matches</h3>
+      <Spinner label="Loading matches..." />
+    </div>
+  );
 
   return (
     <div className="event-picker">

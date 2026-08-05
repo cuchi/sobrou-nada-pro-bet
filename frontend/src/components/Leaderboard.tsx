@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchLeaderboard } from '../api/client';
 import type { LeaderboardEntry } from '../types';
+import { Spinner } from './Spinner';
 
 export default function Leaderboard({ groupId, refreshKey }: { groupId: string; refreshKey: number }) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -22,7 +23,12 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
     load();
   }, [load, refreshKey]);
 
-  if (loading) return <p className="leaderboard-loading">Loading leaderboard...</p>;
+  if (loading) return (
+    <div className="leaderboard">
+      <h2>Leaderboard</h2>
+      <Spinner label="Loading leaderboard..." />
+    </div>
+  );
   if (entries.length === 0) return null;
 
   const podium = ['🥇', '🥈', '🥉'];

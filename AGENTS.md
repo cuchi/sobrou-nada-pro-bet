@@ -87,7 +87,8 @@ CORS_ALLOWED_ORIGINS=...      # Required in prod (already supported)
             ├── GroupSwitcher.tsx # Dropdown + create/join/invite buttons
             ├── Leaderboard.tsx  # Podium + ranking table
             ├── GoogleLoginButton.tsx
-            └── DevLoginButton.tsx
+            ├── DevLoginButton.tsx
+            └── Spinner.tsx
 ```
 
 ## API Endpoints

@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import type { Bet } from './types';
 import BetForm from './components/BetForm';
 import BetList from './components/BetList';
+import { Spinner } from './components/Spinner';
 import GoogleLoginButton from './components/GoogleLoginButton';
 import DevLoginButton from './components/DevLoginButton';
 import GroupSwitcher from './components/GroupSwitcher';
@@ -83,7 +84,7 @@ function AppContent() {
             Backend: {backendStatus}
           </span>
           {loading ? (
-            <span className="auth-loading">Loading…</span>
+            <span className="auth-loading"><Spinner /></span>
           ) : user ? (
             <div className="user-info">
               {user.avatar_url && (
