@@ -72,6 +72,17 @@ This fetches all upcoming Brasileirão fixtures and their odds, upserting into t
 
 In production, this should be a cron job or background worker — not exposed to users.
 
+### Resolving Bets
+
+Once matches finish, resolve pending bets via the admin endpoint:
+
+```sh
+curl -X POST http://localhost:3000/admin/bets/resolve \
+  -H "X-Admin-Token: your-admin-token-from-env"
+```
+
+This fetches scores from the-odds-api.com, marks finished events, and resolves all pending bets — crediting payouts to winners.
+
 ## Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
