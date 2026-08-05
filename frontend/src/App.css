@@ -531,6 +531,26 @@ header h1 {
   padding: 1rem;
 }
 
+.event-search {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text-body);
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  outline: none;
+}
+
+.event-search:focus {
+  border-color: var(--border-hover);
+}
+
+.event-search::placeholder {
+  color: var(--text-dim);
+}
+
 .events-grid {
   display: flex;
   flex-direction: column;

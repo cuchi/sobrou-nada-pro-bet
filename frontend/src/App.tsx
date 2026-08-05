@@ -11,6 +11,7 @@ import GoogleLoginButton from './components/GoogleLoginButton';
 import DevLoginButton from './components/DevLoginButton';
 import GroupSwitcher from './components/GroupSwitcher';
 import Leaderboard from './components/Leaderboard';
+import { usePolling } from './usePolling';
 import './App.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -31,9 +32,17 @@ function setGroupInUrl(groupId: string | null) {
 
 function AppContent() {
   const { user, groups, loading, loginError, clearLoginError, logout } = useAuth();
-  const [bets, setBets] = useState<Bet[]>([]);
-  const [backendStatus, setBackendStatus] = useState<string>('checking...');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(getGroupFromUrl);
+  const [betsRefreshKey, setBetsRefreshKey] = useState(0);
+
+  const [bets, _betsLoading, setBets] = usePolling<Bet[]>(
+    useCallback(async () => {
+      if (!user || !selectedGroupId) return [];
+      return (await fetchBets(selectedGroupId)) as Bet[];
+    }, [user, selectedGroupId, betsRefreshKey]),
+    60_000,
+  );
+  const [backendStatus, setBackendStatus] = useState<string>('checking...');
   const [tick, setTick] = useState(0);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
@@ -50,29 +59,12 @@ function AppContent() {
     setGroupInUrl(id);
   }, []);
 
-  const loadBets = useCallback(async () => {
-    if (!user) {
-      setBets([]);
-      return;
-    }
-    try {
-      const data = (await fetchBets(selectedGroupId ?? undefined)) as Bet[];
-      setBets(data);
-    } catch {
-      console.error('Failed to load bets');
-    }
-  }, [user, selectedGroupId]);
-
   useEffect(() => {
     fetch('/health')
       .then((r) => r.json())
       .then((d) => setBackendStatus(d.status))
       .catch(() => setBackendStatus('offline'));
   }, []);
-
-  useEffect(() => {
-    loadBets();
-  }, [loadBets]);
 
   return (
     <div className="app">
@@ -125,17 +117,17 @@ function AppContent() {
               groupId={selectedGroup.id}
               groupName={selectedGroup.name}
               balance={selectedGroup.balance}
-              bets={bets}
+              bets={bets ?? []}
               onBetCreated={(optimistic) => {
-                setBets(prev => [optimistic, ...prev]);
+                setBets(prev => [optimistic, ...(prev ?? [])]);
               }}
               onBetSettled={() => {
-                loadBets();
+                setBetsRefreshKey(k => k + 1);
                 setTick(t => t + 1);
               }}
               onBetFailed={() => {
-                setBets(prev => prev.filter(b => !b.id.startsWith('optimistic-')));
-                loadBets();
+                setBets(prev => prev ? prev.filter(b => !b.id.startsWith('optimistic-')) : []);
+                setBetsRefreshKey(k => k + 1);
                 setTick(t => t + 1);
               }}
             />
@@ -150,7 +142,7 @@ function AppContent() {
         ) : (
           <p className="login-prompt">Sign in with Google to place bets</p>
         )}
-        {user && <BetList bets={bets} />}
+        {user && selectedGroup && <BetList bets={bets ?? []} />}
       </main>
 
       <footer className="app-footer">

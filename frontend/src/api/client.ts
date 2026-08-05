@@ -43,9 +43,8 @@ export async function fetchMe(): Promise<unknown> {
 
 // ── Bets ──────────────────────────────────────────────
 
-export async function fetchBets(groupId?: string): Promise<unknown> {
-  const url = groupId ? `${BASE}/bets?group_id=${groupId}` : `${BASE}/bets`;
-  const res = await fetch(url, { headers: authHeaders() });
+export async function fetchBets(groupId: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/bets?group_id=${groupId}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch bets');
   return res.json();
 }

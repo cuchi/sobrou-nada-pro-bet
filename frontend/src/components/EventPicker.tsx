@@ -3,12 +3,17 @@ import { fetchEvents } from '../api/client';
 import { getCrestUrl, getTeamColor, getInitials } from '../crests';
 import type { Event, Prediction } from '../types';
 import { Spinner } from './Spinner';
+import { usePolling } from '../usePolling';
 
 interface Props {
   onSelect: (event: Event, prediction: Prediction, odds: number) => void;
   onEventChange?: () => void;
   bettedEventIds: Set<string>;
   resetKey?: number;
+}
+
+function normalize(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function oddsLabel(ev: Event, pred: Prediction): string {
@@ -29,37 +34,28 @@ function TeamCrest({ name }: { name: string }) {
 }
 
 export default function EventPicker({ onSelect, onEventChange, bettedEventIds, resetKey }: Props) {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, loading] = usePolling<Event[]>(
+    useCallback(() => fetchEvents('scheduled,live') as Promise<Event[]>, []),
+    60_000,
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     setSelectedId(null);
     setPrediction(null);
   }, [resetKey]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = (await fetchEvents('scheduled,live')) as Event[];
-      setEvents(data);
-      if (data.length === 0) {
-        setSelectedId(null);
-        setPrediction(null);
-      }
-    } catch {
-      console.error('Failed to load events');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Reset selection when events become empty
   useEffect(() => {
-    load();
-  }, [load]);
+    if (events && events.length === 0) {
+      setSelectedId(null);
+      setPrediction(null);
+    }
+  }, [events]);
 
-  const selected = events.find((e) => e.id === selectedId);
+  const selected = events?.find((e) => e.id === selectedId);
 
   const handleEventSelect = (id: string) => {
     setSelectedId(id);
@@ -69,7 +65,7 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
 
   const handlePredictionSelect = (p: Prediction) => {
     setPrediction(p);
-    const ev = events.find((e) => e.id === selectedId);
+    const ev = events?.find((e) => e.id === selectedId);
     if (ev) {
       const odds = p === 'home_win' ? ev.home_odds : p === 'draw' ? ev.draw_odds : ev.away_odds;
       onSelect(ev, p, odds ?? 1.0);
@@ -83,17 +79,35 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
     </div>
   );
 
+  const all = events ?? [];
+  const q = normalize(query.trim());
+  const list = q
+    ? all.filter((ev) => normalize(ev.home_team).includes(q) || normalize(ev.away_team).includes(q))
+    : all;
+
   return (
     <div className="event-picker">
       <h3 className="event-picker-heading">Upcoming matches</h3>
 
-      {events.length === 0 ? (
+      {all.length > 0 && (
+        <input
+          type="search"
+          className="event-search"
+          placeholder="Search team..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      )}
+
+      {all.length === 0 ? (
         <p className="no-events">
           No upcoming matches right now. Check back later.
         </p>
+      ) : list.length === 0 ? (
+        <p className="no-events">No matches found for “{query}”.</p>
       ) : (
         <div className="events-grid">
-          {events.map((ev) => {
+          {list.map((ev) => {
             const betted = bettedEventIds.has(ev.id);
             return (
             <button

@@ -153,13 +153,13 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
 | POST | `/api/groups/join/:code` | Bearer | Join group by invite code |
 | GET | `/api/groups/:id/leaderboard` | Bearer | Ranked members by balance |
 | GET | `/api/events` | No* | List scheduled + live events |
-| GET | `/api/bets` | No* | List all bets (by group, ordered newest) |
+| GET | `/api/bets?group_id=:id` | Bearer | List bets for a group (ordered newest) |
 | POST | `/api/bets` | Bearer | Body: `{group_id, event_id, prediction, amount, odds}` → creates bet |
 | PATCH | `/api/bets/:id/resolve` | Bearer | Body: `{status: "won"|"lost"}` → resolves bet |
 | POST | `/api/dev/login` | No† | Body: `{email}` → dev-only login (creates user + allowlist) |
 | POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |
 
-\* `GET /api/events` and `GET /api/bets` are public for the MVP.
+\* `GET /api/events` is public for the MVP.
 
 † `POST /api/dev/login` only works when `ENVIRONMENT != "production"`.
 

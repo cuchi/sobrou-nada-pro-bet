@@ -1,11 +1,11 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use chrono::Utc;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -17,60 +17,43 @@ use crate::models::{Bet, BetStatus, BetWithUser, CreateBetRequest, GroupMember};
 
 #[derive(Deserialize)]
 pub struct ListBetsQuery {
-    group_id: Option<Uuid>,
+    group_id: Uuid,
 }
 
-/// GET /api/bets — list bets from the user's groups (authenticated)
+/// GET /api/bets?group_id=... — list bets for a group (authenticated)
 pub async fn list_bets(
     AuthUser { id: user_id, .. }: AuthUser,
     State(pool): State<PgPool>,
     Query(query): Query<ListBetsQuery>,
 ) -> Result<Json<Value>, AppError> {
-    let bets: Vec<BetWithUser> = if let Some(group_id) = query.group_id {
-        let is_member: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2)",
-        )
-        .bind(group_id)
-        .bind(user_id)
-        .fetch_one(&pool)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
+    let is_member: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2)",
+    )
+    .bind(query.group_id)
+    .bind(user_id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        if !is_member {
-            return Err(AppError::Forbidden(
-                "You're not a member of this group".into(),
-            ));
-        }
-
-        sqlx::query_as(
-            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
-                      u.avatar_url AS user_avatar_url,
-                      e.home_team, e.away_team
-               FROM bets b
-               JOIN users u ON u.id = b.user_id
-               LEFT JOIN events e ON e.id = b.event_id
-               WHERE b.group_id = $1
-               ORDER BY b.created_at DESC"#,
-        )
-        .bind(group_id)
-        .fetch_all(&pool)
-        .await
-    } else {
-        sqlx::query_as(
-            r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
-                      u.avatar_url AS user_avatar_url,
-                      e.home_team, e.away_team
-               FROM bets b
-               JOIN group_members gm ON gm.group_id = b.group_id
-               JOIN users u ON u.id = b.user_id
-               LEFT JOIN events e ON e.id = b.event_id
-               WHERE gm.user_id = $1
-               ORDER BY b.created_at DESC"#,
-        )
-        .bind(user_id)
-        .fetch_all(&pool)
-        .await
+    if !is_member {
+        return Err(AppError::Forbidden(
+            "You're not a member of this group".into(),
+        ));
     }
+
+    let bets: Vec<BetWithUser> = sqlx::query_as(
+        r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
+                  u.avatar_url AS user_avatar_url,
+                  e.home_team, e.away_team
+           FROM bets b
+           JOIN users u ON u.id = b.user_id
+           LEFT JOIN events e ON e.id = b.event_id
+           WHERE b.group_id = $1
+           ORDER BY b.created_at DESC"#,
+    )
+    .bind(query.group_id)
+    .fetch_all(&pool)
+    .await
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok(Json(json!(bets)))
@@ -180,7 +163,7 @@ pub async fn resolve_bet(
         _ => {
             return Err(AppError::BadRequest(
                 "Status must be 'won' or 'lost'".into(),
-            ))
+            ));
         }
     };
 

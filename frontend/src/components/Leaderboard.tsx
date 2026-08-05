@@ -1,29 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { fetchLeaderboard } from '../api/client';
 import type { LeaderboardEntry } from '../types';
 import { Spinner } from './Spinner';
+import { usePolling } from '../usePolling';
 
 export default function Leaderboard({ groupId, refreshKey }: { groupId: string; refreshKey: number }) {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
-
-  const load = useCallback(async () => {
-    if (initialLoad) setLoading(true);
-    try {
-      const data = (await fetchLeaderboard(groupId)) as LeaderboardEntry[];
-      setEntries(data);
-    } catch {
-      console.error('Failed to load leaderboard');
-    } finally {
-      setLoading(false);
-      setInitialLoad(false);
-    }
-  }, [groupId, initialLoad]);
-
-  useEffect(() => {
-    load();
-  }, [load, refreshKey]);
+  const [entries, loading] = usePolling<LeaderboardEntry[]>(
+    useCallback(
+      () => fetchLeaderboard(groupId) as Promise<LeaderboardEntry[]>,
+      [groupId, refreshKey],
+    ),
+    60_000,
+  );
 
   if (loading) return (
     <div className="leaderboard">
@@ -31,7 +19,7 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
       <Spinner label="Loading leaderboard..." />
     </div>
   );
-  if (entries.length === 0) return null;
+  if (!entries || entries.length === 0) return null;
 
   const podium = ['🥇', '🥈', '🥉'];
 
