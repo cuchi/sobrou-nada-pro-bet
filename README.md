@@ -5,7 +5,7 @@
 A cashless betting app for a closed beta — friends place points-based bets on Brazilian football matches (Brasileirão), compete in private groups, and climb the leaderboard.
 
 > 🤖 Built with [DeepSeek V4 Pro](https://deepseek.com) through agentic engineering.
-> Read the full story: [I Vibe-coded a Full-Stack App for \$2.96](https://cuchi.me/posts/vibe-coding/)
+> Read the full story: [I Vibe-coded a Full-Stack App for \$2.96](https://cuchi.me/posts/vibe-coding/) — that covered the MVP; with everything since, the whole project is still under a \$6 total price tag.
 
 ![Screenshot](screenshot.png)
 

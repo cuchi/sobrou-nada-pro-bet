@@ -11,6 +11,7 @@ pub struct Env {
     pub odds_api_key: Result<String, AppError>,
     pub environment: String,
     pub cors_allowed_origins: Option<String>,
+    pub rust_log: Option<String>,
     pub port: u16,
 }
 
@@ -49,6 +50,8 @@ impl Env {
             .ok()
             .filter(|s| !s.is_empty());
 
+        let rust_log = std::env::var("RUST_LOG").ok().filter(|s| !s.is_empty());
+
         let port = std::env::var("PORT")
             .unwrap_or_else(|_| "3000".into())
             .parse()
@@ -62,6 +65,7 @@ impl Env {
             odds_api_key,
             environment,
             cors_allowed_origins,
+            rust_log,
             port,
         }
     }

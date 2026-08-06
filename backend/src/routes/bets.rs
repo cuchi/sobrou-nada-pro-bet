@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{Query, State},
     http::StatusCode,
 };
 use chrono::Utc;
@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::auth::AuthUser;
 use crate::error::AppError;
-use crate::models::{Bet, BetStatus, BetWithUser, CreateBetRequest, GroupMember};
+use crate::models::{Bet, BetWithUser, CreateBetRequest, GroupMember};
 
 // ── Bets ──────────────────────────────────────────────
 
@@ -143,64 +143,4 @@ pub async fn create_bet(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok((StatusCode::CREATED, Json(json!(bet))))
-}
-
-/// PATCH /api/bets/:id/resolve — resolve a bet and update group balance
-pub async fn resolve_bet(
-    _auth: AuthUser,
-    State(pool): State<PgPool>,
-    Path(id): Path<Uuid>,
-    Json(body): Json<serde_json::Value>,
-) -> Result<Json<Value>, AppError> {
-    let status_str = body
-        .get("status")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| AppError::BadRequest("Missing 'status' field".into()))?;
-
-    let new_status = match status_str {
-        "won" => BetStatus::Won,
-        "lost" => BetStatus::Lost,
-        _ => {
-            return Err(AppError::BadRequest(
-                "Status must be 'won' or 'lost'".into(),
-            ));
-        }
-    };
-
-    let bet: Bet = sqlx::query_as("SELECT * FROM bets WHERE id = $1")
-        .bind(id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?
-        .ok_or_else(|| AppError::NotFound(format!("Bet {id} not found")))?;
-
-    if bet.status != BetStatus::Pending {
-        return Err(AppError::BadRequest("Bet is already resolved".into()));
-    }
-
-    // Update bet status
-    let bet: Bet = sqlx::query_as("UPDATE bets SET status = $1 WHERE id = $2 RETURNING *")
-        .bind(&new_status)
-        .bind(id)
-        .fetch_one(&pool)
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-    // Update group balance (payout = amount * odds if won)
-    if new_status == BetStatus::Won {
-        let payout = bet.amount * bet.odds;
-        if let Some(group_id) = bet.group_id {
-            sqlx::query(
-                "UPDATE group_members SET balance = balance + $1 WHERE group_id = $2 AND user_id = $3",
-            )
-            .bind(payout)
-            .bind(group_id)
-            .bind(bet.user_id)
-            .execute(&pool)
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        }
-    }
-
-    Ok(Json(json!(bet)))
 }

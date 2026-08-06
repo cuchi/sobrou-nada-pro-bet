@@ -156,9 +156,9 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
 | GET | `/api/events` | No* | List scheduled + live events |
 | GET | `/api/bets?group_id=:id` | Bearer | List bets for a group (ordered newest) |
 | POST | `/api/bets` | Bearer | Body: `{group_id, event_id, prediction, amount, odds}` → creates bet |
-| PATCH | `/api/bets/:id/resolve` | Bearer | Body: `{status: "won"|"lost"}` → resolves bet |
 | POST | `/api/dev/login` | No† | Body: `{email}` → dev-only login (creates user + allowlist) |
 | POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |
+| POST | `/admin/bets/resolve` | Admin | Fetch scores and resolve pending bets automatically |
 
 \* `GET /api/events` is public for the MVP.
 

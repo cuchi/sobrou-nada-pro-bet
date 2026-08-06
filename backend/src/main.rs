@@ -21,9 +21,9 @@ async fn main() {
 
     let env = Env::load();
 
-    let default_filter: String = match std::env::var("RUST_LOG") {
-        Ok(_) => "".into(),
-        Err(_) => {
+    let default_filter: String = match &env.rust_log {
+        Some(_) => "".into(),
+        None => {
             if env.is_prod() {
                 "sobrou_nada_pro_bet=info,tower_http=info".into()
             } else {

@@ -5,64 +5,43 @@ pub mod error;
 pub mod models;
 pub mod routes;
 
-pub use main::build_app;
+pub use app::build_app;
 
-mod main {
-    use axum::{Router, routing::get};
+mod app {
+    use axum::{
+        Router,
+        routing::{get, post},
+    };
     use tower_http::{
         cors::{Any, CorsLayer},
         services::{ServeDir, ServeFile},
         trace::TraceLayer,
     };
 
-    pub async fn build_app(pool: sqlx::PgPool) -> Router {
-        let cors = build_cors();
+    use crate::routes::{
+        admin, create_bet, create_group, dev_login, get_group, get_invite, google_login,
+        health_check, join_group, leaderboard, list_bets, list_events, list_my_groups, me,
+        regenerate_invite,
+    };
 
+    pub async fn build_app(pool: sqlx::PgPool) -> Router {
         Router::new()
-            .route("/health", get(crate::routes::health_check))
-            .route(
-                "/api/auth/google",
-                axum::routing::post(crate::routes::google_login),
-            )
-            .route("/api/auth/me", get(crate::routes::me))
-            .route(
-                "/api/dev/login",
-                axum::routing::post(crate::routes::dev_login),
-            )
-            .route(
-                "/api/groups",
-                get(crate::routes::list_my_groups).post(crate::routes::create_group),
-            )
-            .route("/api/groups/{id}", get(crate::routes::get_group))
+            .route("/health", get(health_check))
+            .route("/api/auth/google", post(google_login))
+            .route("/api/auth/me", get(me))
+            .route("/api/dev/login", post(dev_login))
+            .route("/api/groups", get(list_my_groups).post(create_group))
+            .route("/api/groups/{id}", get(get_group))
             .route(
                 "/api/groups/{id}/invite",
-                get(crate::routes::get_invite).post(crate::routes::regenerate_invite),
+                get(get_invite).post(regenerate_invite),
             )
-            .route(
-                "/api/groups/join/{code}",
-                axum::routing::post(crate::routes::join_group),
-            )
-            .route(
-                "/api/groups/{id}/leaderboard",
-                get(crate::routes::leaderboard),
-            )
-            .route("/api/events", get(crate::routes::list_events))
-            .route(
-                "/admin/events/sync",
-                axum::routing::post(crate::routes::admin::sync_events),
-            )
-            .route(
-                "/admin/bets/resolve",
-                axum::routing::post(crate::routes::admin::resolve_bets),
-            )
-            .route(
-                "/api/bets",
-                get(crate::routes::list_bets).post(crate::routes::create_bet),
-            )
-            .route(
-                "/api/bets/{id}/resolve",
-                axum::routing::patch(crate::routes::resolve_bet),
-            )
+            .route("/api/groups/join/{code}", post(join_group))
+            .route("/api/groups/{id}/leaderboard", get(leaderboard))
+            .route("/api/events", get(list_events))
+            .route("/api/bets", get(list_bets).post(create_bet))
+            .route("/admin/events/sync", post(admin::sync_events))
+            .route("/admin/bets/resolve", post(admin::resolve_bets))
             .fallback_service(
                 ServeDir::new("dist").not_found_service(ServeFile::new("dist/index.html")),
             )
@@ -80,7 +59,7 @@ mod main {
                             .latency_unit(tower_http::LatencyUnit::Millis),
                     ),
             )
-            .layer(cors)
+            .layer(build_cors())
             .with_state(pool)
     }
 

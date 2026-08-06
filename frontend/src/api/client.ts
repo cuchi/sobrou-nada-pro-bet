@@ -69,16 +69,6 @@ export async function createBet(req: {
   return data;
 }
 
-export async function resolveBet(id: string, status: 'won' | 'lost'): Promise<unknown> {
-  const res = await fetch(`${BASE}/bets/${id}/resolve`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify({ status }),
-  });
-  if (!res.ok) throw new Error('Failed to resolve bet');
-  return res.json();
-}
-
 // ── Groups ────────────────────────────────────────────
 
 export async function createGroup(name: string): Promise<unknown> {
