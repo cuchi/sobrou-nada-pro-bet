@@ -125,6 +125,14 @@ ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
 - [ ] Untested — no matches have been played yet (season starts Aug 8)
 - [ ] Handle edge cases: cancelled matches, ties with no draw prediction
 
+### Derived event statuses
+
+Sync only stores `scheduled` events (manual script). `GET /api/events` derives the rest on the fly from `start_time`:
+- `scheduled` — starts in the future
+- `live` — started, within the ~2h match window
+- `finished` — results synced, **or** the match window elapsed but results aren't resolved yet
+- `cancelled` — stored as such
+
 ## Phase 7 — UI polish (remaining) 🔲
 
 - [ ] Bet history with win/loss streaks per user
@@ -194,7 +202,7 @@ Current versions as of Aug 2026:
 
 ## Phase 12 — Backend tests & coverage 🚧
 
-Integration tests live in `backend/tests/` (isolated via auto-created `snpb_test` DB, advisory-lock serialized). 15 tests across auth, groups, bets, admin auth, and sync/resolve.
+Integration tests live in `backend/tests/` (isolated via auto-created `snpb_test` DB, advisory-lock serialized). 28 tests across auth, groups, bets, events, admin auth, and sync/resolve.
 
 - [x] Test harness — `tests/common/mod.rs`: auto-create + migrate + truncate, run in any order
 - [x] Auth — health check, dev login, 401 without token
@@ -259,7 +267,7 @@ bets                            joined_at
 | POST | `/api/groups/:id/invite` | Bearer | Regenerate invite |
 | POST | `/api/groups/join/:code` | Bearer | Join by code |
 | GET | `/api/groups/:id/leaderboard` | Bearer | Ranked members |
-| GET | `/api/events` | No* | Scheduled + live events |
+| GET | `/api/events` | No* | Scheduled + live events (status derived on the fly) |
 | GET | `/api/bets` | No* | List bets (by group) |
 | POST | `/api/bets` | Bearer | Create bet |
 | POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |

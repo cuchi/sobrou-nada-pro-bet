@@ -1,5 +1,6 @@
 export type BetStatus = 'pending' | 'won' | 'lost';
 export type Prediction = 'home_win' | 'away_win' | 'draw';
+export type EventStatus = 'scheduled' | 'live' | 'finished' | 'cancelled';
 
 export interface Bet {
   id: string;
@@ -76,7 +77,7 @@ export interface Event {
   away_team: string;
   championship: string;
   start_time: string;
-  status: string;
+  status: EventStatus;
   home_score: number | null;
   away_score: number | null;
   home_odds: number | null;

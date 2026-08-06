@@ -153,7 +153,7 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
 | POST | `/api/groups/:id/invite` | Bearer | Regenerate invite code |
 | POST | `/api/groups/join/:code` | Bearer | Join group by invite code |
 | GET | `/api/groups/:id/leaderboard` | Bearer | Ranked members by balance |
-| GET | `/api/events` | No* | List scheduled + live events |
+| GET | `/api/events` | No* | List events (status derived on the fly: scheduled / live / finished / cancelled) |
 | GET | `/api/bets?group_id=:id` | Bearer | List bets for a group (ordered newest) |
 | POST | `/api/bets` | Bearer | Body: `{group_id, event_id, prediction, amount, odds}` → creates bet |
 | POST | `/api/dev/login` | No† | Body: `{email}` → dev-only login (creates user + allowlist) |
@@ -169,6 +169,14 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
 Admin endpoints use a secret token passed via the `X-Admin-Token` header (not JWT). The `AdminAuth` extractor in `routes/admin.rs` validates it against the `ADMIN_TOKEN` env var:
 - Missing header → 401
 - Wrong token → 403
+
+### Event statuses
+
+`/admin/events/sync` only stores `scheduled` events (it's a manual script, so the transient `live` state never persists). Resolution (`/admin/bets/resolve`) flips stored events to `finished` or `cancelled`. `GET /api/events` **derives** the transient states on the fly from `start_time`:
+- `scheduled` — starts in the future
+- `live` — started, within ~2h match window
+- `finished` — results already synced, or the match window elapsed but results aren't resolved yet
+- `cancelled` — stored as such
 
 ## Auth Flow
 

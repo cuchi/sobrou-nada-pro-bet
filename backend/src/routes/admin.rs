@@ -104,11 +104,9 @@ fn parse_match_odds(m: &serde_json::Value) -> Option<ParsedMatch> {
         .map(|dt| dt.with_timezone(&chrono::Utc))
         .unwrap_or_else(|| chrono::Utc::now());
 
-    let status = if start_time > chrono::Utc::now() {
-        "scheduled"
-    } else {
-        "live"
-    };
+    // Sync only stores scheduled events. 'live' / 'finished' / 'cancelled'
+    // states are derived dynamically in the events listing.
+    let status = "scheduled";
 
     let (home_odds, draw_odds, away_odds) = extract_odds(m, &home_team, &away_team);
 
