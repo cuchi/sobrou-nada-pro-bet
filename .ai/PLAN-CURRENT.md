@@ -1,113 +1,23 @@
 # PLAN-CURRENT.md — Sobrou Nada Pro Bet (post-1.0)
 
-Remaining roadmap after the 1.0 release. Grouped by theme, roughly in priority order.
+Remaining roadmap after the 1.0 release. Grouped by theme, in priority order.
 
-> ✅ Everything in this repo that shipped is documented in [PLAN-1.0.md](PLAN-1.0.md).
-
----
-
-## 1. Automation — background worker 🔲
-
-The one missing "always-on" piece: periodic sync + resolve instead of manual admin calls.
-
-```text
-Worker loop (runs every ~5 min)
-  |
-  +-- 1. Sync events (the-odds-api.com)
-  |     Same logic as POST /admin/events/sync, in-process
-  |     UPSERT into events table
-  |
-  +-- 2. Resolve bets
-  |     SELECT bets WHERE status = 'pending'
-  |       AND events.status = 'finished'
-  |     Compare prediction vs actual score
-  |     UPDATE bets.status, group_members.balance
-  |
-  +-- 3. Send emails (SendGrid)
-        For each newly-resolved bet:
-          Skip if user.email_notifications = false
-          Send transactional email with result
-```
-
-- **Idempotent** — safe to re-run
-- **Error-resilient** — one failure doesn't stop the loop
-- **Fully logged** — `tracing::info!` at each step
-
-> ⚠️ **Render free tier limitation:** The web service spins down after 15 minutes of inactivity, which would kill a long-running Tokio task. Options:
-> - Upgrade to a paid Render plan (keeps the service alive)
-> - Use Render **Cron Jobs** ($0 for simple scheduled HTTP calls — could trigger `/admin/events/sync` + an auto-resolve endpoint periodically)
-> - Use an external cron service (e.g. cron-job.org) to ping admin endpoints
-
-### Env vars needed
-
-```env
-SENDGRID_API_KEY=...   # For bet resolution emails
-```
-
-### Migration needed
-
-```sql
-ALTER TABLE users ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT true;
-```
-
-### Render deployment env vars
-
-**Runtime** (set in Web Service → Environment):
-
-```env
-DATABASE_URL=postgres://...           # Auto-set by Render PostgreSQL service
-GOOGLE_CLIENT_ID=...                   # Same as VITE_GOOGLE_CLIENT_ID
-JWT_SECRET=...                         # openssl rand -base64 32
-ADMIN_TOKEN=...                        # openssl rand -base64 32
-ODDS_API_KEY=...                       # From the-odds-api.com
-ENVIRONMENT=production
-CORS_ALLOWED_ORIGINS=https://your-app.onrender.com
-```
-
-**Build-time** (set in Web Service → Settings → Docker Build Arguments):
-
-```env
-VITE_GOOGLE_CLIENT_ID=...              # Embedded by Vite at build time
-```
+> ✅ Everything that shipped is documented in [PLAN-1.0.md](PLAN-1.0.md).
+> 🅟️ Monetization-gated work is parked in [PLAN-FUTURE.md](PLAN-FUTURE.md).
 
 ---
 
-## 2. Auto-resolve hardening 🚧
+## 1. Match card event status label & styling 🔲
 
-The resolve flow works and is mock-tested, but hasn't run against real matches.
+The event card currently shows team crests, time, and prediction buttons, but doesn't surface the match state at a glance. Make the status obvious on the card itself.
 
-- [ ] Validate with real data — no matches played yet when 1.0 shipped (season starts Aug 8)
-- [ ] Handle cancelled matches — mark event `cancelled`, refund or void pending bets
-- [ ] Handle ties — no draw prediction exists; decide policy (void? loss?)
-- [ ] Confirm `GET /api/events` "finished but waiting" derivation holds up at scale
+- [ ] Status badge per card — `scheduled` / `live` / `finished` / `cancelled`, styled consistently with existing palette (green for live, muted for finished, red for cancelled)
+- [ ] Kickoff countdown for `scheduled` cards (e.g. "in 2h 14m")
+- [ ] "LIVE" pulse / accent for in-progress matches
+- [ ] Hide prediction buttons (or show "closed" state) once the match is past the 1h cutoff / finished
+- [ ] Visual treatment for `cancelled` matches (muted / strikethrough, no predictions)
 
----
-
-## 3. Bet history, streaks & activity feed 🔲
-
-- [ ] Per-user win/loss streaks
-- [ ] Activity feed: "Alice just won 200 pts on Flamengo vs Palmeiras"
-- [ ] Optional: aggregate per-group stats (biggest win, most active, etc.)
-
----
-
-## 4. SPA polish (remaining) 🔲
-
-- [ ] Empty states — illustrations or messages for empty bet lists, groups, etc.
-- [ ] Error boundaries — catch component crashes gracefully
-- [ ] Offline indicator — show when backend is unreachable
-- [ ] Keyboard shortcuts — Enter to submit, Esc to close modals
-
----
-
-## 5. Security & hardening 🔲
-
-- [ ] Rate limiting on auth endpoints (`/api/auth/google`, `/api/dev/login`)
-- [ ] Consider stricter CORS posture / security headers (HSTS, CSP)
-
----
-
-## 6. Internationalization (i18n) 🔲
+## 2. Internationalization (i18n) 🔲
 
 Support English (en) and Brazilian Portuguese (pt-BR).
 
@@ -119,22 +29,36 @@ Support English (en) and Brazilian Portuguese (pt-BR).
 - [ ] Team names — keep as-is (proper nouns, not translated)
 - [ ] Backend error messages — optionally localize based on `Accept-Language` header (lower priority)
 
----
+## 3. SPA polish (remaining) 🔲
 
-## 7. Maintenance 🔲
+- [ ] Empty states — illustrations or messages for empty bet lists, groups, etc.
+- [ ] Error boundaries — catch component crashes gracefully
+- [ ] Offline indicator — show when backend is unreachable
+- [ ] Keyboard shortcuts — Enter to submit, Esc to close modals
 
-Current versions as of Aug 2026 (see [PLAN-1.0.md](PLAN-1.0.md) for the stack):
+## 4. Emails 🔲
 
-- [ ] Bump Rust dependencies — `cargo update`, check for breaking changes
-- [ ] Bump Node dependencies — `npm outdated` + `npm update`, audit for vulnerabilities
-- [ ] Update Docker base images — Node LTS, Rust stable, Debian slim
-- [ ] Review Render pricing — free tier limits, consider upgrading if usage grows
-- [ ] Monitor the-odds-api.com — free tier quota (500 req/month), API version changes
+Transactional emails, gated on user preference. Two trigger types initially.
 
----
+- [ ] Pick a provider — SendGrid (env: `SENDGRID_API_KEY`)
+- [ ] Migration — `users.email_notifications BOOLEAN NOT NULL DEFAULT true`
+- [ ] Per-user preference — surface a toggle in account/settings (default on)
+- [ ] **Bet resolved** — on win/loss/void, send a short summary (match, pick, outcome, payout)
+- [ ] **New events for upcoming matches** — notify opted-in users when fresh events land in the events table (weekly digest is fine; avoid spam)
+- [ ] Respect `email_notifications = false` everywhere
+- [ ] All sends fully logged (`tracing::info!` per send, success/failure)
+- [ ] Email triggers are idempotent — re-running resolve or sync must not double-send (track `notified_at` or use the resolved timestamp as the dedupe key)
 
-## 8. Backend test coverage gap 🚧
+Triggering today is manual (admin hits `/admin/bets/resolve`); emails should fire from the same code path so they "just work" once a trigger exists.
 
-Overall coverage is 76%. The one big gap:
+## 5. Hardening 🔲
 
-- [ ] `routes/auth.rs` at ~40% — the `google_login` handler calls the live Google API; needs HTTP-client mocking or a refactor to cover its branches
+Tighten what's already shipping before adding more surface area.
+
+- [ ] Rate limiting on `/api/auth/google` (dev login intentionally not rate-limited — local/dev-only, gated by `ENVIRONMENT != "production"`)
+- [ ] Stricter CORS posture / security headers — HSTS, CSP
+- [ ] Validate auto-resolve against real data (no matches played yet when 1.0 shipped; season starts Aug 8)
+- [ ] Handle cancelled matches — mark event `cancelled`, **refund** pending bets to group balance
+- [ ] Confirm "win prediction vs actual draw" resolves as a **loss** (draw predictions are first-class — picking `draw` is its own outcome; the only "loss" case is a non-draw pick on a draw result)
+- [ ] Confirm `GET /api/events` "finished but waiting" derivation holds up at scale
+- [ ] Backend test coverage gap — `routes/auth.rs` at ~40% (`google_login` hits the live Google API; needs HTTP-client mocking or a refactor to cover its branches)

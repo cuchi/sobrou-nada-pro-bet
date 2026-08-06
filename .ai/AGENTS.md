@@ -22,13 +22,15 @@ Full-stack web application for a cashless betting system (closed beta with frien
 | 8 | Deploy — Dockerfile, Render, managed Postgres, prod CORS, HTTPS, CI | ✅ Shipped |
 | 9 | SPA polish — spinners, toasts, optimistic updates, polling | ✅ Shipped |
 | 12 | Backend tests & coverage — 28 integration tests, 76% line coverage | ✅ Shipped |
-| 5 | Background worker — periodic sync/resolve | 🔲 Todo |
-| 7 | Bet history, streaks & activity feed | 🔲 Todo |
+| — | Match card event status label & styling | 🔲 Todo |
 | 10 | Internationalization (en / pt-BR) | 🔲 Todo |
-| 11 | Maintenance — dependency bumps, version reviews | 🔲 Todo |
+| — | SPA polish (remaining) | 🔲 Todo |
+| — | Emails — bet resolved + new events | 🔲 Todo |
+| — | Hardening — rate limits, security headers, auto-resolve polish | 🔲 Todo |
 
 See **[.ai/PLAN-CURRENT.md](PLAN-CURRENT.md)** for the full remaining roadmap.
 See **[.ai/PLAN-1.0.md](PLAN-1.0.md)** for what shipped in 1.0.
+See **[.ai/PLAN-FUTURE.md](PLAN-FUTURE.md)** for monetization-gated work (Render upgrade, background worker).
 
 ## Stack
 
