@@ -9,7 +9,7 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 - [x] Axum backend with Postgres
 - [x] Google OAuth login
 - [x] Create bets (amount + odds)
-- [x] Resolve bets (win/loss)
+- [x] Resolve bets automatically via admin (`/admin/bets/resolve`) — no manual resolve route
 - [x] Shared bet table
 - [x] Production-safe error handling (5xx never leak)
 
@@ -37,18 +37,20 @@ Roadmap for a cashless betting app — closed beta with friends, Brazilian footb
 - [x] Odds locked from API (user cannot edit)
 - [x] 1-hour cutoff before kickoff (server-enforced)
 - [x] No duplicate bets on same event/user/group
-- [x] Event picker UI with team crests (48px PNG, transparent BG)
+- [x] Event picker UI with team crests (SVG, transparent BG)
 - [x] Responsive event cards (dark theme, grid layout, crests-only on mobile)
 - [x] Two-line date/time in event cards
 - [x] Prediction buttons with team name + odds on separate lines
 - [x] Group UUID in URL (`?group=<id>`) — survives refresh
-- [x] Invite bar with copy button + dismiss
-- [x] Crest border via CSS drop-shadow (traces alpha channel)
+- [x] Invite shows just the code (copy + dismiss) — 32-char alphanumeric
+- [x] Crest visibility — light drop-shadow halo to lift dark crests off the dark card
 - [x] Already-bet matches disabled at reduced opacity
 - [x] Leaderboard shows at-risk points, tiebreaker by risk amount, ellipsis on long names
 - [x] Scrollbar styled to match dark theme
 - [x] Team name ellipsis on overflow
 - [x] Bet list: avatar with initials fallback, prediction shows team name, odds tooltip with payout
+- [x] Bet list: frontend-only pagination (10 per page)
+- [x] Bet list: "Betted at" column — date/time on two lines (DD/MM/YYYY + HH:SS)
 
 ## Phase 5 — Background worker 🔲
 
@@ -190,6 +192,23 @@ Current versions as of Aug 2026:
 - [ ] Review Render pricing — free tier limits, consider upgrading if usage grows
 - [ ] Monitor the-odds-api.com — free tier quota (500 req/month), API version changes
 
+## Phase 12 — Backend tests & coverage 🚧
+
+Integration tests live in `backend/tests/` (isolated via auto-created `snpb_test` DB, advisory-lock serialized). 15 tests across auth, groups, bets, admin auth, and sync/resolve.
+
+- [x] Test harness — `tests/common/mod.rs`: auto-create + migrate + truncate, run in any order
+- [x] Auth — health check, dev login, 401 without token
+- [x] Groups — create/view, list, join (invalid/already member), invite owner-only, regenerate, leaderboard (+ pending-bet sums)
+- [x] Bets — place & list, no duplicates, insufficient balance, non-member 403/400, 1h cutoff
+- [x] Events — list (unfiltered, single status, comma-separated), auth required
+- [x] Admin — secret-token validation for sync/resolve
+- [x] Sync/resolve — mock JSON: sync odds, resolve bets, verify balance updates
+- [x] Coverage tool — `cargo-llvm-cov` (installed via brew, works with cargo test/nextest)
+- [x] Coverage CI step — installs llvm-cov and prints summary in CI
+- [x] 27 integration tests total across all suites
+- [x] Line coverage: **75%** total; bets 93%, groups 92%, events 95%, models 95%
+- [ ] `routes/auth.rs` at 40% — the `google_login` handler calls the live Google API (hard to mock without refactoring the HTTP client)
+
 ---
 
 ## Schema (current)
@@ -243,7 +262,6 @@ bets                            joined_at
 | GET | `/api/events` | No* | Scheduled + live events |
 | GET | `/api/bets` | No* | List bets (by group) |
 | POST | `/api/bets` | Bearer | Create bet |
-| PATCH | `/api/bets/:id/resolve` | Bearer | Resolve bet |
 | POST | `/admin/events/sync` | Admin | Sync events from the-odds-api.com |
 | POST | `/admin/bets/resolve` | Admin | Fetch scores and resolve pending bets |
 

@@ -60,6 +60,15 @@ jobs:
         working-directory: backend
         run: cargo nextest run
 
+      - name: Install llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Coverage (summary)
+        working-directory: backend
+        run: cargo llvm-cov --summary-only
+
   frontend:
     runs-on: ubuntu-latest
 
