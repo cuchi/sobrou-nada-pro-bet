@@ -375,7 +375,7 @@ header h1 {
   color: var(--text-secondary);
 }
 
-.invite-link-bar {
+.invite-code-bar {
   width: 100%;
   display: flex;
   gap: 0.5rem;
@@ -385,14 +385,14 @@ header h1 {
   border-radius: 8px;
 }
 
-.invite-link-bar code {
+.invite-code-bar code {
   flex: 1;
   font-size: 0.75rem;
   color: var(--text-secondary);
   word-break: break-all;
 }
 
-.invite-link-bar button {
+.invite-code-bar button {
   padding: 0.25rem 0.6rem;
   background: var(--bg-input);
   color: var(--text-secondary);
@@ -855,6 +855,16 @@ header h1 {
 }
 
 /* ---- Bet list ---- */
+
+.bet-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-card) transparent;
+}
+
+.bet-list::-webkit-scrollbar { height: 5px; }
+.bet-list::-webkit-scrollbar-track { background: transparent; }
+.bet-list::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 3px; }
+.bet-list::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
 
 .bet-list h2 {
   font-size: 1.1rem;

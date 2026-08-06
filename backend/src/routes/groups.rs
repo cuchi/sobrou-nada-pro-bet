@@ -1,18 +1,16 @@
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
-    Json,
 };
 use rand::RngExt;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
 use crate::error::AppError;
-use crate::models::{
-    CreateGroupRequest, Group, GroupMember, GroupWithBalance, LeaderboardEntry,
-};
+use crate::models::{CreateGroupRequest, Group, GroupMember, GroupWithBalance, LeaderboardEntry};
 
 // ── Groups ────────────────────────────────────────────
 
@@ -234,7 +232,7 @@ pub async fn leaderboard(
 fn generate_invite_code() -> String {
     let chars: Vec<char> = "abcdefghijklmnopqrstuvwxyz0123456789".chars().collect();
     let mut rng = rand::rng();
-    (0..8)
+    (0..32)
         .map(|_| chars[rng.random_range(0..chars.len())])
         .collect()
 }

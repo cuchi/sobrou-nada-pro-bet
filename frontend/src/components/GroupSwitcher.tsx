@@ -16,7 +16,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
   const [showJoin, setShowJoin] = useState(false);
   const [newName, setNewName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [groupInvite, setGroupInvite] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const selected = groups.find((g) => g.id === selectedGroupId);
@@ -29,7 +29,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       onSelect(val);
       setShowCreate(false);
       setShowJoin(false);
-      setInviteLink(null);
+      setGroupInvite(null);
     }
   };
 
@@ -76,9 +76,9 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
     setLoading(true);
     try {
       const data = (await getInviteCode(selectedGroupId)) as { invite_code: string };
-      setInviteLink(`${window.location.origin}?join=${data.invite_code}`);
+      setGroupInvite(data.invite_code);
     } catch {
-      toast('Failed to get invite link');
+      toast('Failed to get invite code');
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
           + Create
         </button>
         <button
-          onClick={() => { setShowJoin(true); setShowCreate(false); setInviteLink(null); }}
+          onClick={() => { setShowJoin(true); setShowCreate(false); setGroupInvite(null); }}
           className="btn-group-action"
         >
           + Join
@@ -152,13 +152,13 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
         </form>
       )}
 
-      {inviteLink && (
-        <div className="invite-link-bar">
-          <code>{inviteLink}</code>
-          <button onClick={() => navigator.clipboard.writeText(inviteLink)}>Copy</button>
+      {groupInvite && (
+        <div className="invite-code-bar">
+          <code>{groupInvite}</code>
+          <button onClick={() => navigator.clipboard.writeText(groupInvite)}>Copy</button>
           <button
             className="btn-invite-close"
-            onClick={() => setInviteLink(null)}
+            onClick={() => setGroupInvite(null)}
             aria-label="Close"
           >
             ×
