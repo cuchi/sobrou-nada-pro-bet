@@ -6,6 +6,8 @@
   padding: 0;
 }
 
+
+/* ── Reset & design tokens ──────────────────────────────────────── */
 :root {
   --bg-body:       #0b0e14;
   --bg-card:       #121721;
@@ -82,6 +84,8 @@ body {
   to { transform: rotate(360deg); }
 }
 
+
+/* ── Primitives (spinner, toast, login prompts, footer) ────────── */
 /* ---- Toast notifications ---- */
 
 .toast-container {
@@ -139,6 +143,8 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+
+/* ── Keyframes & one-shot animations ───────────────────────────── */
 /* ---- Animations ---- */
 
 @keyframes fade-in {
@@ -154,6 +160,8 @@ body {
   animation: fade-in 0.3s ease-out;
 }
 
+
+/* ── App shell & header ────────────────────────────────────────── */
 /* ---- Layout ---- */
 
 .app {
@@ -214,6 +222,8 @@ header h1 {
   padding: 0.1rem 0.5rem;
 }
 
+
+/* ── Language switcher (header trigger + embedded options) ────── */
 .language-switcher {
   position: relative;
   display: inline-flex;
@@ -271,6 +281,8 @@ header h1 {
    switcher pair. The avatar stays visible as a read-only chip; only the
    actions (sign out + language) collapse behind the ⋮ trigger. */
 
+
+/* ── User menu (avatar chip + ⋮ popover) ───────────────────────── */
 .user-menu {
   position: relative;
   display: inline-flex;
@@ -281,10 +293,6 @@ header h1 {
 .user-chip {
   display: inline-flex;
   align-items: center;
-}
-
-.user-chip .avatar {
-  /* Reuse the existing .avatar sizing from earlier in this file. */
 }
 
 .menu-trigger {
@@ -444,6 +452,8 @@ header h1 {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
 
+
+/* ── Auth states & login prompts ───────────────────────────────── */
 .auth-loading {
   font-size: 0.85rem;
   color: var(--text-dim);
@@ -490,6 +500,8 @@ header h1 {
 
 /* ---- Group switcher ---- */
 
+
+/* ── Group switcher & invites ──────────────────────────────────── */
 .group-switcher {
   margin-bottom: 1.5rem;
   display: flex;
@@ -646,6 +658,8 @@ header h1 {
 
 /* ---- Bet form ---- */
 
+
+/* ── Bet form (place a bet) ────────────────────────────────────── */
 .bet-form {
   background: var(--bg-panel);
   border-radius: 12px;
@@ -731,6 +745,8 @@ header h1 {
 
 /* ---- Event picker ---- */
 
+
+/* ── Event picker (upcoming matches + status badges) ──────────── */
 .event-picker {
   width: 100%;
   margin-bottom: 0.5rem;
@@ -847,6 +863,8 @@ header h1 {
 
 /* ---- Recent results ---- */
 
+
+/* ── Recent results (collapsed match history) ─────────────────── */
 .recent-results {
   margin-top: 0;
 }
@@ -1082,6 +1100,8 @@ header h1 {
   50%      { box-shadow: 0 0 0 6px transparent; }
 }
 
+
+/* ── Reduced motion ────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .event-status-badge.live,
   .recent-result-score {
@@ -1198,6 +1218,8 @@ header h1 {
 
 /* ---- Leaderboard ---- */
 
+
+/* ── Leaderboard ───────────────────────────────────────────────── */
 .leaderboard {
   background: var(--bg-panel);
   border-radius: 12px;
@@ -1280,6 +1302,8 @@ header h1 {
 
 /* ---- Bet list ---- */
 
+
+/* ── Bet list (table) ──────────────────────────────────────────── */
 .bet-list {
   scrollbar-width: thin;
   scrollbar-color: var(--border-card) transparent;
@@ -1447,6 +1471,8 @@ th {
 
 /* ---- Footer ---- */
 
+
+/* ── Footer ────────────────────────────────────────────────────── */
 .app-footer {
   margin-top: 3rem;
   padding-top: 1rem;
@@ -1476,6 +1502,8 @@ th {
 
 /* ---- Responsive ---- */
 
+
+/* ── Responsive ≤ 640px ───────────────────────────────────────── */
 @media (max-width: 640px) {
   .app {
     padding: 1rem 0.5rem;
@@ -1639,6 +1667,8 @@ th {
   }
 }
 
+
+/* ── Responsive ≤ 480px ───────────────────────────────────────── */
 @media (max-width: 480px) {
   /* Very narrow screens: trim the card's left padding and shrink the odds
      pills further so the team names + crests + three odds pills + info
