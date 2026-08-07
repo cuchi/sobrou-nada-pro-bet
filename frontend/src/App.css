@@ -42,6 +42,8 @@
   --crest-halo:    rgba(255, 255, 255, 0.60);
   --active-pill:   rgba(240, 192, 64, 0.15);
   --podium-bg:     rgba(240, 192, 64, 0.08);
+
+  --live-glow:      rgba(52, 211, 153, 0.55);
 }
 
 body {
@@ -522,7 +524,7 @@ header h1 {
   font-size: 0.9rem;
   color: var(--text-muted);
   font-weight: 400;
-  margin-bottom: 0.75rem;
+  margin: 0.25rem 0 0.75rem;
 }
 
 .no-events {
@@ -627,6 +629,91 @@ header h1 {
   cursor: not-allowed;
 }
 
+/* ---- Recent results ---- */
+
+.recent-results {
+  margin-top: 0;
+}
+
+.recent-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-bottom: 0.25rem;
+}
+
+.recent-results-summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  list-style: none;
+  user-select: none;
+  padding: 0.35rem 0;
+  margin: 0 0 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.recent-results-summary::-webkit-details-marker { display: none; }
+.recent-results-summary::after {
+  content: '▸';
+  display: inline-block;
+  transition: transform 0.15s;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.recent-results[open] > .recent-results-summary::after {
+  transform: rotate(90deg);
+}
+
+.recent-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.recent-result-teams {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Meta cluster (when / score / badge) — on wide screens sits inline with
+   the team names; on narrow screens (.recent-result stacks) it becomes a
+   right-aligned second row inside the card. */
+.recent-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.recent-result-when {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.recent-result-score {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
 .team-crest {
   width: 48px;
   height: 48px;
@@ -699,9 +786,9 @@ header h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.25rem;
   flex-shrink: 0;
-  width: 4rem;
+  width: 5.5rem;
   grid-column: 5;
 }
 
@@ -711,6 +798,100 @@ header h1 {
   color: var(--text-muted);
   line-height: 1;
   white-space: nowrap;
+}
+
+/* ---- Event status badge ---- */
+
+.event-status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.event-status-badge.scheduled {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border-card);
+}
+
+.event-status-badge.live {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+.event-status-badge.finished {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border-card);
+}
+
+.event-status-badge.awaiting-result {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
+  border-style: dashed;
+}
+
+.event-status-badge.cancelled {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--live-glow); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-status-badge.live {
+    animation: none;
+  }
+}
+
+.event-kickoff {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  line-height: 1.1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-kickoff.relative {
+  color: var(--text-secondary);
+}
+
+.event-card.cancelled {
+  opacity: 0.55;
+}
+
+.event-card.finished {
+  opacity: 0.6;
+}
+
+.event-card.live {
+  border-color: var(--green);
+}
+
+.event-closed-notice {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.6rem;
+  background: var(--bg-panel);
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  font-style: italic;
 }
 
 /* ---- Prediction bar ---- */
@@ -1112,12 +1293,17 @@ th {
   }
 
   .event-info {
-    width: 3.2rem;
+    width: 4.4rem;
   }
 
   .event-date,
   .event-time {
     font-size: 0.6rem;
+  }
+
+  .event-status-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
   }
 
   .prediction-bar {
@@ -1174,5 +1360,38 @@ th {
   .events-grid {
     max-height: 320px;
     padding-right: 0.5rem;
+  }
+
+  /* Recent results: stack the meta cluster under the team names so the
+     right-side pieces (when / badge / score) don't crowd them. */
+  .recent-result {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+
+  .recent-result-teams {
+    flex: none;
+    white-space: normal;
+  }
+
+  .recent-result-meta {
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Very narrow screens: trim the card's left padding and shrink the odds
+     pills further so the team names + crests + three odds pills + info
+     column all fit on one line. */
+  .event-card {
+    padding-left: 0.5rem;
+  }
+
+  .odd-badge {
+    width: 1.5rem;
+    padding: 0.05rem 0.15rem;
+    font-size: 0.55rem;
   }
 }

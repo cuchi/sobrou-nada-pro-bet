@@ -78,6 +78,7 @@ export interface Event {
   championship: string;
   start_time: string;
   status: EventStatus;
+  awaiting_result: boolean;
   home_score: number | null;
   away_score: number | null;
   home_odds: number | null;

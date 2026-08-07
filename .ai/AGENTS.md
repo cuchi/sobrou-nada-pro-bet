@@ -88,6 +88,7 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
 --crest-halo:    rgba(255,255,255,0.60)   light halo so dark crests pop on dark bg
 --active-pill:   rgba(240,192,64,0.15)    active odds pill
 --podium-bg:     rgba(240,192,64,0.08)    podium row
+--live-glow:     rgba(52,211,153,0.55)    LIVE badge pulse (alpha channel for box-shadow ring)
 ```
 
 ## Project Structure

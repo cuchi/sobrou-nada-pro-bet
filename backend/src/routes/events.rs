@@ -49,6 +49,19 @@ fn display_status(event: &Event) -> &'static str {
     }
 }
 
+/// True when `display_status` returned `"finished"` but the row hasn't been
+/// resolved by `/admin/bets/resolve` yet — the match window has elapsed but
+/// scores are not in. The UI surfaces these with an "Awaiting result" badge
+/// instead of a final "Finished" so users aren't misled into thinking the
+/// outcome is already known.
+fn is_awaiting_result(event: &Event) -> bool {
+    if event.status == "finished" || event.status == "cancelled" {
+        return false;
+    }
+    let now = Utc::now();
+    now > event.start_time + MATCH_DURATION
+}
+
 /// GET /api/events — list events, optionally filtered by status (comma-separated)
 ///
 /// Filtering matches against the *displayed* (derived) status, so callers can
@@ -77,6 +90,7 @@ pub async fn list_events(
         .map(|event| {
             let mut value = serde_json::to_value(event).unwrap_or(json!({}));
             value["status"] = json!(display_status(event));
+            value["awaiting_result"] = json!(is_awaiting_result(event));
             value
         })
         .collect();
