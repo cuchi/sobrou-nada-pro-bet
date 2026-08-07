@@ -193,6 +193,23 @@ header h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-logo {
+  height: 2em;
+  width: 2em;
+  flex-shrink: 0;
+  /* When the title truncates with an ellipsis, hide the logo too so the
+     row collapses gracefully instead of leaving the logo stranded. */
+  display: block;
+}
+
+header h1 .app-logo + span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {

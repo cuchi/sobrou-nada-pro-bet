@@ -77,7 +77,10 @@ function AppContent() {
   return (
     <div className="app">
       <header>
-        <h1>{t('app.title')}</h1>
+        <h1>
+                  <img src="/brand/logo.svg" alt="" className="app-logo" />
+                  <span>{t('app.title')}</span>
+                </h1>
         <div className="header-right">
           {user || loading ? (
             // UserMenu owns its own loading state: it renders a compact
