@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
-import { createBet } from '../api/client';
+import { createBet, translateApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { Bet, Event, Prediction } from '../types';
 import EventPicker from './EventPicker';
@@ -111,7 +111,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
       onBetSettled();
     } catch (err) {
       onBetFailed();
-      setError(err instanceof Error ? err.message : t('betForm.errors.generic'));
+      setError(translateApiError(err, t, 'betForm.errors.generic'));
     } finally {
       setLoading(false);
     }

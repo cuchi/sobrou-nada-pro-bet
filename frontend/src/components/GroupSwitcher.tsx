@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { createGroup, getInviteCode, joinGroup } from '../api/client';
+import { createGroup, getInviteCode, joinGroup, translateApiError } from '../api/client';
 import { useToast } from './Toast';
 import type { Group } from '../types';
 
@@ -67,7 +67,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       setShowJoin(false);
       setShowCreate(false);
     } catch (err) {
-      toast(err instanceof Error ? err.message : t('groupSwitcher.errors.joinFailed'));
+      toast(translateApiError(err, t, 'groupSwitcher.errors.joinFailed'));
     } finally {
       setLoading(false);
     }

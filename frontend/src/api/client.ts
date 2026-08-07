@@ -23,6 +23,36 @@ export function codeToLocaleKey(code: string): string {
   return code.replace(/_([a-z0-9])/g, (_, ch: string) => ch.toUpperCase());
 }
 
+/**
+ * Convert any thrown value into a user-facing, locale-aware error string.
+ *
+ * Use this at every render site that catches errors from one of the four
+ * in-scope API callers (`googleLogin`, `devLogin`, `createBet`,
+ * `joinGroup`). The flow:
+ *   1. If `err` is an `ApiError`, look up `t('errors.<key>', params)` via
+ *      `codeToLocaleKey`. i18next returns the key path itself when a
+ *      translation is missing — fall back to `err.message` (English) so
+ *      the UI is never blank.
+ *   2. If `err` is a plain `Error`, surface `err.message`.
+ *   3. Otherwise use `fallbackKey` (defaults to `'errors.internal'`).
+ *
+ * Centralising this here keeps render sites trivial and means future API
+ * callers automatically get the right behaviour.
+ */
+export function translateApiError(
+  err: unknown,
+  t: (key: string, params?: Record<string, unknown>) => string,
+  fallbackKey: string = 'errors.internal',
+): string {
+  if (err instanceof ApiError) {
+    const key = `errors.${codeToLocaleKey(err.code)}`;
+    const translated = t(key, err.params ?? {});
+    return translated === key ? err.message : translated;
+  }
+  if (err instanceof Error) return err.message;
+  return t(fallbackKey);
+}
+
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

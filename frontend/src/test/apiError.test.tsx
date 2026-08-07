@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup, waitFor, act } from '@testing-library/react';
-import { I18nextProvider } from 'react-i18next';
+import { I18nextProvider, useTranslation } from 'react-i18next';
 import i18n from '../i18n';
-import { ApiError, codeToLocaleKey } from '../api/client';
+import { ApiError, codeToLocaleKey, translateApiError, joinGroup } from '../api/client';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import en from '../locales/en/common.json';
 import ptBR from '../locales/pt-BR/common.json';
@@ -246,5 +246,125 @@ describe('codeToLocaleKey', () => {
     // underscores, the mapper returns it verbatim and the catch-block's
     // "key equals input" check falls back to err.message.
     expect(codeToLocaleKey('some_new_code')).toBe('someNewCode');
+  });
+});
+
+describe('translateApiError', () => {
+  // Minimal TFunction stub — only used by translateApiError, which calls
+  // t(key) or t(key, params) and compares the result to the key.
+  function makeT(bundle: Record<string, string>) {
+    return (key: string, params?: Record<string, unknown>) => {
+      const template = bundle[key];
+      if (template === undefined) return key; // i18next behaviour for missing keys
+      if (!params) return template;
+      return template.replace(/\{\{(\w+)\}\}/g, (_, name) =>
+        params[name] != null ? String(params[name]) : `{{${name}}}`,
+      );
+    };
+  }
+
+  it('translates an ApiError using its code+params in English', () => {
+    const err = new ApiError('insufficient_balance', { have: 200, bet: 50 }, 'English fallback');
+    const t = makeT({
+      'errors.insufficientBalance': 'Not enough points — you have {{have}} and tried to bet {{bet}}',
+    });
+    expect(translateApiError(err, t)).toBe(
+      'Not enough points — you have 200 and tried to bet 50',
+    );
+  });
+
+  it('translates an ApiError using its code+params in pt-BR', () => {
+    const err = new ApiError('insufficient_balance', { have: 200, bet: 50 }, 'English fallback');
+    const t = makeT({
+      'errors.insufficientBalance': 'Pontos insuficientes — você tem {{have}} e tentou apostar {{bet}}',
+    });
+    expect(translateApiError(err, t)).toBe(
+      'Pontos insuficientes — você tem 200 e tentou apostar 50',
+    );
+  });
+
+  it('falls back to err.message when the locale has no key for the code', () => {
+    const err = new ApiError('not_a_real_code', null, 'English fallback message');
+    const t = makeT({});
+    expect(translateApiError(err, t)).toBe('English fallback message');
+  });
+
+  it('passes through a plain Error.message', () => {
+    const err = new TypeError('something broke');
+    const t = makeT({});
+    expect(translateApiError(err, t)).toBe('something broke');
+  });
+
+  it('uses the fallbackKey for non-Error throws', () => {
+    const t = makeT({
+      'errors.internal': 'Something went wrong. Please try again.',
+    });
+    expect(translateApiError('not an error at all', t)).toBe(
+      'Something went wrong. Please try again.',
+    );
+  });
+
+  it('uses the caller-supplied fallbackKey when provided', () => {
+    const t = makeT({
+      'groupSwitcher.errors.joinFailed': 'Failed to join',
+    });
+    expect(translateApiError('not an error', t, 'groupSwitcher.errors.joinFailed')).toBe(
+      'Failed to join',
+    );
+  });
+});
+
+describe('Bug regression: GroupSwitcher.handleJoin shows the localized message, not err.message', () => {
+  // The bug: handleJoin's catch block used to do
+  //   `toast(err instanceof Error ? err.message : t(...))`
+  // which displayed the English "You're already in this group" verbatim
+  // even when the page was in pt-BR, because ApiError extends Error so
+  // `err.message` (English) was chosen over the translated template.
+  //
+  // We don't need to mount the full GroupSwitcher tree — we just need to
+  // verify that joinGroup() + translateApiError() (the same combo the
+  // fixed handleJoin uses) produces the Portuguese string in pt-BR mode.
+  it('renders the Portuguese translation for already_in_group (pt-BR)', async () => {
+    await i18n.changeLanguage('pt-BR');
+    globalThis.fetch = (async () => {
+      return new Response(
+        JSON.stringify({
+          code: 'already_in_group',
+          params: null,
+          message: "You're already in this group",
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as typeof fetch;
+
+    let toastText = '';
+    function Probe() {
+      const { t } = useTranslation();
+      return (
+        <button
+          onClick={async () => {
+            try {
+              await joinGroup('whatever');
+            } catch (err) {
+              toastText = translateApiError(err, t, 'groupSwitcher.errors.joinFailed');
+            }
+          }}
+        >
+          join
+        </button>
+      );
+    }
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <Probe />
+      </I18nextProvider>,
+    );
+    await act(async () => {
+      container.querySelector('button')!.click();
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    expect(toastText).toBe('Você já faz parte deste grupo');
+    expect(toastText).not.toContain("You're already in this group");
   });
 });
