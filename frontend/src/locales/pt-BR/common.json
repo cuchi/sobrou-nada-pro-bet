@@ -163,6 +163,17 @@
     "getInvite": "Falha ao obter convite",
     "fetchLeaderboard": "Falha ao buscar ranking",
     "fetchEvents": "Falha ao buscar eventos",
-    "devLoginAlert": "Falha no login de dev — o backend está rodando?"
+    "devLoginAlert": "Falha no login de dev — o backend está rodando?",
+    "authGoogleFailed": "Falha no login com Google",
+    "authGoogleInvalid": "Falha no login com Google",
+    "authNotOnAllowlist": "Este app está em beta fechado. Contate paulo@cuchi.me para pedir acesso.",
+    "notGroupMember": "Você não faz parte deste grupo",
+    "insufficientBalance": "Pontos insuficientes — você tem {{have}} e tentou apostar {{bet}}",
+    "alreadyBetOnEvent": "Você já tem uma aposta pendente neste evento",
+    "eventNotFound": "Evento não encontrado",
+    "bettingClosed": "Apostas encerradas para esta partida",
+    "invalidInviteCode": "Código de convite inválido",
+    "alreadyInGroup": "Você já faz parte deste grupo",
+    "internal": "Algo deu errado. Tente novamente."
   }
 }

@@ -291,5 +291,6 @@ async fn cannot_bet_outside_group() {
         50,
     );
     let resp = router.clone().oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    // Phase D contract: `not_group_member` maps to 403 Forbidden.
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }

@@ -2,6 +2,27 @@ import i18n from '../i18n';
 
 const BASE = '/api';
 
+export class ApiError extends Error {
+  constructor(
+    public code: string,
+    public params: Record<string, unknown> | null,
+    public message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/**
+ * Translate a backend snake_case error code into the camelCase locale key
+ * defined in the Phase D contract. The wire codes are stable snake_case
+ * identifiers (e.g. `insufficient_balance`); the locale files group them
+ * under `errors.<CamelCase>` for consistency with the rest of the keys.
+ */
+export function codeToLocaleKey(code: string): string {
+  return code.replace(/_([a-z0-9])/g, (_, ch: string) => ch.toUpperCase());
+}
+
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -21,8 +42,16 @@ export async function googleLogin(credential: string): Promise<unknown> {
   });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || i18n.t('errors.googleLogin');
-    throw new Error(msg);
+    const err = data as {
+      code?: string;
+      params?: Record<string, unknown> | null;
+      message?: string;
+    };
+    throw new ApiError(
+      err.code ?? 'auth_google_failed',
+      err.params ?? null,
+      err.message ?? i18n.t('errors.authGoogleFailed'),
+    );
   }
   return data;
 }
@@ -31,8 +60,16 @@ export async function devLogin(): Promise<unknown> {
   const res = await fetch(`${BASE}/dev/login`, { method: 'POST' });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || i18n.t('errors.devLogin');
-    throw new Error(msg);
+    const err = data as {
+      code?: string;
+      params?: Record<string, unknown> | null;
+      message?: string;
+    };
+    throw new ApiError(
+      err.code ?? 'internal',
+      err.params ?? null,
+      err.message ?? i18n.t('errors.internal'),
+    );
   }
   return data;
 }
@@ -65,8 +102,16 @@ export async function createBet(req: {
   });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || i18n.t('errors.createBet');
-    throw new Error(msg);
+    const err = data as {
+      code?: string;
+      params?: Record<string, unknown> | null;
+      message?: string;
+    };
+    throw new ApiError(
+      err.code ?? 'internal',
+      err.params ?? null,
+      err.message ?? i18n.t('errors.internal'),
+    );
   }
   return data;
 }
@@ -90,8 +135,16 @@ export async function joinGroup(inviteCode: string): Promise<unknown> {
   });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || i18n.t('errors.joinGroup');
-    throw new Error(msg);
+    const err = data as {
+      code?: string;
+      params?: Record<string, unknown> | null;
+      message?: string;
+    };
+    throw new ApiError(
+      err.code ?? 'internal',
+      err.params ?? null,
+      err.message ?? i18n.t('errors.internal'),
+    );
   }
   return res.json();
 }

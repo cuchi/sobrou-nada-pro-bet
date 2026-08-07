@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { devLogin } from '../api/client';
+import { devLogin, ApiError, codeToLocaleKey } from '../api/client';
 import type { AuthResponse } from '../types';
 
 export default function DevLoginButton() {
@@ -14,8 +14,16 @@ export default function DevLoginButton() {
       localStorage.setItem('token', data.token);
       // Reload to pick up the token and trigger /api/auth/me
       window.location.reload();
-    } catch {
-      alert(t('errors.devLoginAlert'));
+    } catch (err) {
+      let msg: string;
+      if (err instanceof ApiError) {
+        const key = `errors.${codeToLocaleKey(err.code)}`;
+        msg = t(key, err.params ?? {});
+        if (msg === key) msg = err.message;
+      } else {
+        msg = err instanceof Error ? err.message : t('errors.devLoginAlert');
+      }
+      alert(msg);
     } finally {
       setLoading(false);
     }

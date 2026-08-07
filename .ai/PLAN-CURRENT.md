@@ -82,7 +82,7 @@ The event card now surfaces the match state at a glance: status badge per card, 
 - **Realistic kickoff times** — `snap_to_half_hour` helper rounds every absolute `start_time` to the nearest `:00` or `:30` so dev data doesn't show kickoffs at e.g. `23:17:42`.
 - Idempotent via `ON CONFLICT (external_id) DO UPDATE`. Only touches the `events` table; users/groups/bets are created normally via `/api/dev/login`.
 
-## 2. Internationalization (i18n) 🔲
+## 2. Internationalization (i18n) ✅
 
 Support English (en) and Brazilian Portuguese (pt-BR). App branding is bilingual but copy reads as pt-BR to start (the existing date format on upcoming cards is `'pt-BR'`, the seed team names are Brasileirão clubs, and the user's domain is Brazilian football). The work is in three phases.
 
@@ -157,14 +157,16 @@ Also:
 - [x] Keep the `{ text, relative }` shape — the `relative` flag drives the `.relative` CSS class on `.event-kickoff` and shouldn't be lost.
 - [x] Tests: `src/test/kickoff.test.ts` covers all six countdown phrases in both locales, the two absolute phrases (`tomorrow HH:MM` and `<weekday> HH:MM`), and explicit assertions that the active locale drives `Intl.DateTimeFormat` (e.g. en gives "07/01 18:00", pt-BR gives "01/07 18:00"). 17 tests total.
 
-### Phase D — backend error messages (lower priority) 🔲
+### Phase D — backend error messages ✅
 
-Errors from the API (`/api/auth/google` failures, validation errors, admin actions) currently render their server-supplied message directly into the UI. With i18n these should be translation keys, not English/Portuguese sentences.
+Errors from the API (`/api/auth/google` failures, validation errors, admin actions) used to render their server-supplied message directly into the UI. With i18n these are translation keys, not English/Portuguese sentences.
 
-- [ ] Define a stable set of error codes on the backend (`unauthorized`, `invalid_invite_code`, `insufficient_balance`, etc.) and emit them as `{ code, params }` instead of free-text messages.
-- [ ] Frontend maps each code to a `t(...)` string with the supplied params.
-- [ ] Field-level validation errors (e.g. amount must be a positive integer) follow the same pattern: `{ code: "invalid_amount", params: { min: 1, max: 99999 } }`.
-- [ ] Out of scope: `Accept-Language`-driven server message templating. The code-based approach sidesteps it — the backend never produces user-facing text in this round.
+- [x] Backend emits the wire shape `{ code, params, message }` from the four in-scope routes (`google_login`, `create_bet`, `join_group`) and `AppError::Internal`. The 11 codes are listed in `.ai/PHASE-D-CONTRACT.md`. Wire codes are snake_case; locale keys are camelCase via the `codeToLocaleKey` mapper exported from `frontend/src/api/client.ts`.
+- [x] Frontend `ApiError` class catches the structured payload, `AuthContext.login` and `DevLoginButton` look up `t('errors.<key>', params)` with an English `err.message` fallback when a key is missing.
+- [x] Field-level validation errors (e.g. `insufficient_balance` carries `{ have, bet }` as numeric params) follow the same pattern. New params flow through i18next interpolation; no code change required at the render site.
+- [x] Out-of-scope routes (`/api/auth/me` token-decode failures, `/api/bets` list, `/api/groups` create/get/leaderboard, `/api/admin/*`, `/api/events/*`, `/api/auth/dev_login`) keep their legacy `{ "error": "<string>" }` shape via parallel `Legacy*` `AppError` variants. No churn at those call sites.
+- [x] Out of scope: `Accept-Language`-driven server message templating. The code-based approach sidesteps it — the backend never produces user-facing text in this round.
+- [x] Tests: 11 backend integration tests in `backend/tests/error_shape.rs` covering the in-scope shape, the canonical internal shape, and legacy-shape preservation. 14 frontend tests in `frontend/src/test/apiError.test.tsx` covering locale coverage, `insufficientBalance` interpolation, end-to-end translation through `AuthContext.login`, missing-key fallback, `ApiError` class shape, and the `codeToLocaleKey` mapper.
 
 ### Open questions ✅ (resolved)
 

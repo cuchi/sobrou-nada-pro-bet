@@ -162,6 +162,17 @@
     "getInvite": "Failed to get invite",
     "fetchLeaderboard": "Failed to fetch leaderboard",
     "fetchEvents": "Failed to fetch events",
-    "devLoginAlert": "Dev login failed — is the backend running?"
+    "devLoginAlert": "Dev login failed — is the backend running?",
+    "authGoogleFailed": "Google login failed",
+    "authGoogleInvalid": "Google sign-in failed",
+    "authNotOnAllowlist": "This app is currently in closed beta. Contact paulo@cuchi.me to request access.",
+    "notGroupMember": "You're not a member of this group",
+    "insufficientBalance": "Not enough points — you have {{have}} and tried to bet {{bet}}",
+    "alreadyBetOnEvent": "You already have a pending bet on this event",
+    "eventNotFound": "Event not found",
+    "bettingClosed": "Betting is closed for this match",
+    "invalidInviteCode": "Invalid invite code",
+    "alreadyInGroup": "You're already in this group",
+    "internal": "Something went wrong. Please try again."
   }
 }

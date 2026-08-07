@@ -10,7 +10,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
-use crate::error::AppError;
+use crate::error::{AppError, ErrorCode};
 use crate::models::{Bet, BetWithUser, CreateBetRequest, GroupMember};
 
 // ── Bets ──────────────────────────────────────────────
@@ -36,8 +36,8 @@ pub async fn list_bets(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     if !is_member {
-        return Err(AppError::Forbidden(
-            "You're not a member of this group".into(),
+        return Err(AppError::legacy_forbidden(
+            "You're not a member of this group",
         ));
     }
 
@@ -73,13 +73,16 @@ pub async fn create_bet(
             .fetch_optional(&pool)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?
-            .ok_or_else(|| AppError::BadRequest("You're not a member of this group".into()))?;
+            .ok_or_else(|| AppError::Forbidden(ErrorCode::NotGroupMember, None))?;
 
     if member.balance < payload.amount {
-        return Err(AppError::BadRequest(format!(
-            "Insufficient balance. You have {:.0} points, bet is {:.0}.",
-            member.balance, payload.amount
-        )));
+        return Err(AppError::BadRequest(
+            ErrorCode::InsufficientBalance {
+                have: member.balance,
+                bet: payload.amount,
+            },
+            None,
+        ));
     }
 
     // Check for duplicate bet on same event
@@ -94,9 +97,7 @@ pub async fn create_bet(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     if already_bet {
-        return Err(AppError::BadRequest(
-            "You already have a pending bet on this event".into(),
-        ));
+        return Err(AppError::BadRequest(ErrorCode::AlreadyBetOnEvent, None));
     }
 
     // Check event starts at least 1 hour from now
@@ -106,13 +107,11 @@ pub async fn create_bet(
             .fetch_optional(&pool)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?
-            .ok_or_else(|| AppError::BadRequest("Event not found".into()))?;
+            .ok_or_else(|| AppError::BadRequest(ErrorCode::EventNotFound, None))?;
 
     let cutoff = Utc::now() + chrono::Duration::hours(1);
     if event_start < cutoff {
-        return Err(AppError::BadRequest(
-            "Bets close 1 hour before kickoff".into(),
-        ));
+        return Err(AppError::BadRequest(ErrorCode::BettingClosed, None));
     }
 
     // Deduct points

@@ -27,10 +27,10 @@ where
             .headers
             .get("x-admin-token")
             .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| AppError::Unauthorized("Missing X-Admin-Token header".into()))?;
+            .ok_or_else(|| AppError::legacy_unauthorized("Missing X-Admin-Token header"))?;
 
         if provided != expected {
-            return Err(AppError::Forbidden("Invalid admin token".into()));
+            return Err(AppError::legacy_forbidden("Invalid admin token"));
         }
 
         Ok(AdminAuth)

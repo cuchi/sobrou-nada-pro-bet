@@ -9,7 +9,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
-use crate::error::AppError;
+use crate::error::{AppError, ErrorCode};
 use crate::models::{CreateGroupRequest, Group, GroupMember, GroupWithBalance, LeaderboardEntry};
 
 // ── Groups ────────────────────────────────────────────
@@ -81,14 +81,14 @@ pub async fn get_group(
             .fetch_optional(&pool)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?
-            .ok_or_else(|| AppError::NotFound("Group not found or you're not a member".into()))?;
+            .ok_or_else(|| AppError::legacy_not_found("Group not found or you're not a member"))?;
 
     let group: Group = sqlx::query_as("SELECT * FROM groups WHERE id = $1")
         .bind(group_id)
         .fetch_optional(&pool)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
-        .ok_or_else(|| AppError::NotFound("Group not found".into()))?;
+        .ok_or_else(|| AppError::legacy_not_found("Group not found"))?;
 
     let members: Vec<GroupMember> =
         sqlx::query_as("SELECT * FROM group_members WHERE group_id = $1 ORDER BY joined_at")
@@ -111,11 +111,11 @@ pub async fn get_invite(
         .fetch_optional(&pool)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
-        .ok_or_else(|| AppError::NotFound("Group not found".into()))?;
+        .ok_or_else(|| AppError::legacy_not_found("Group not found"))?;
 
     if group.owner_id != user_id {
-        return Err(AppError::Forbidden(
-            "Only the group owner can view the invite code".into(),
+        return Err(AppError::legacy_forbidden(
+            "Only the group owner can view the invite code",
         ));
     }
 
@@ -133,11 +133,11 @@ pub async fn regenerate_invite(
         .fetch_optional(&pool)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
-        .ok_or_else(|| AppError::NotFound("Group not found".into()))?;
+        .ok_or_else(|| AppError::legacy_not_found("Group not found"))?;
 
     if group.owner_id != user_id {
-        return Err(AppError::Forbidden(
-            "Only the group owner can regenerate the invite code".into(),
+        return Err(AppError::legacy_forbidden(
+            "Only the group owner can regenerate the invite code",
         ));
     }
 
@@ -163,7 +163,7 @@ pub async fn join_group(
         .fetch_optional(&pool)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
-        .ok_or_else(|| AppError::NotFound("Invalid invite code".into()))?;
+        .ok_or_else(|| AppError::NotFound(ErrorCode::InvalidInviteCode, None))?;
 
     // Check not already a member
     let already: bool = sqlx::query_scalar(
@@ -176,7 +176,7 @@ pub async fn join_group(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     if already {
-        return Err(AppError::BadRequest("You're already in this group".into()));
+        return Err(AppError::BadRequest(ErrorCode::AlreadyInGroup, None));
     }
 
     sqlx::query("INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)")
@@ -205,7 +205,7 @@ pub async fn leaderboard(
             .fetch_optional(&pool)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?
-            .ok_or_else(|| AppError::NotFound("Group not found or you're not a member".into()))?;
+            .ok_or_else(|| AppError::legacy_not_found("Group not found or you're not a member"))?;
 
     let entries: Vec<LeaderboardEntry> = sqlx::query_as(
         r#"SELECT u.id AS user_id, COALESCE(u.username, u.email) AS name,

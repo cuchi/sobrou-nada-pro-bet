@@ -28,24 +28,24 @@ where
             .headers
             .get(axum::http::header::AUTHORIZATION)
             .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| AppError::Unauthorized("Missing Authorization header".into()))?;
+            .ok_or_else(|| AppError::legacy_unauthorized("Missing Authorization header"))?;
 
         let token = header
             .strip_prefix("Bearer ")
-            .ok_or_else(|| AppError::Unauthorized("Expected Bearer token".into()))?;
+            .ok_or_else(|| AppError::legacy_unauthorized("Expected Bearer token"))?;
 
         let token_data = decode::<JwtClaims>(
             token,
             &DecodingKey::from_secret(secret.as_bytes()),
             &Validation::default(),
         )
-        .map_err(|e| AppError::Unauthorized(format!("Invalid token: {e}")))?;
+        .map_err(|e| AppError::legacy_unauthorized(format!("Invalid token: {e}")))?;
 
         let claims = token_data.claims;
         let id = claims
             .sub
             .parse::<uuid::Uuid>()
-            .map_err(|_| AppError::Unauthorized("Invalid user id in token".into()))?;
+            .map_err(|_| AppError::legacy_unauthorized("Invalid user id in token"))?;
 
         Ok(AuthUser {
             id,

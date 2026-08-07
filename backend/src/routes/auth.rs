@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
-use crate::error::AppError;
+use crate::error::{AppError, ErrorCode};
 use crate::models::{
     AuthResponse, GoogleAuthRequest, GoogleTokenClaims, GroupWithBalance, JwtClaims, PublicUser,
     User,
@@ -27,31 +27,31 @@ pub async fn google_login(
     let url = format!("https://oauth2.googleapis.com/tokeninfo?id_token={token}");
     let resp = reqwest::get(&url).await.map_err(|e| {
         tracing::error!("Failed to reach Google tokeninfo: {e}");
-        AppError::Unauthorized(format!("Failed to verify token: {e}"))
+        AppError::Unauthorized(ErrorCode::AuthGoogleFailed, None)
     })?;
 
     let status = resp.status();
     let raw_body = resp.text().await.map_err(|e| {
         tracing::error!("Failed to read Google response body: {e}");
-        AppError::Unauthorized(format!("Failed to read token response: {e}"))
+        AppError::Unauthorized(ErrorCode::AuthGoogleFailed, None)
     })?;
 
     tracing::debug!(%status, %raw_body, "Google tokeninfo response");
 
     let google_claims: GoogleTokenClaims = serde_json::from_str(&raw_body).map_err(|e| {
         tracing::error!(%raw_body, "Failed to parse Google tokeninfo: {e}");
-        AppError::Unauthorized(format!("Invalid token response: {e}"))
+        AppError::Unauthorized(ErrorCode::AuthGoogleFailed, None)
     })?;
 
     if let Some(aud) = &google_claims.aud {
         if aud != &client_id {
             tracing::error!(expected=%client_id, got=%aud, "Token audience mismatch");
-            return Err(AppError::Unauthorized("Token audience mismatch".into()));
+            return Err(AppError::Unauthorized(ErrorCode::AuthGoogleInvalid, None));
         }
     }
     if google_claims.sub.is_empty() {
         tracing::error!("Google token has empty sub claim");
-        return Err(AppError::Unauthorized("Invalid Google token".into()));
+        return Err(AppError::Unauthorized(ErrorCode::AuthGoogleInvalid, None));
     }
 
     let email = google_claims
@@ -59,7 +59,7 @@ pub async fn google_login(
         .filter(|_| google_claims.email_verified.as_deref() == Some("true"))
         .ok_or_else(|| {
             tracing::error!("Google email not verified or missing");
-            AppError::Unauthorized("Email not verified by Google".into())
+            AppError::Unauthorized(ErrorCode::AuthGoogleInvalid, None)
         })?;
 
     tracing::info!(%email, google_sub=%google_claims.sub, "Google user verified");
@@ -77,10 +77,7 @@ pub async fn google_login(
 
     if !is_allowed {
         tracing::warn!(%email, "User not on beta allowlist");
-        return Err(AppError::Forbidden(
-            "This app is currently in closed beta. Contact paulo@cuchi.me to request access."
-                .into(),
-        ));
+        return Err(AppError::Forbidden(ErrorCode::AuthNotOnAllowlist, None));
     }
 
     // Upsert user
@@ -139,7 +136,7 @@ pub async fn me(
         .fetch_optional(&pool)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
-        .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+        .ok_or_else(|| AppError::legacy_not_found("User not found"))?;
 
     let groups: Vec<GroupWithBalance> = sqlx::query_as(
         r#"SELECT g.*, gm.balance
@@ -165,7 +162,7 @@ pub async fn me(
 /// Only works when ENVIRONMENT is not "production".
 pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppError> {
     if crate::env::ENV.is_prod() {
-        return Err(AppError::NotFound("Not found".into()));
+        return Err(AppError::legacy_not_found("Not found"));
     }
 
     let names = ["Pelé", "Zico", "Romário", "Ronaldo", "Ronaldinho", "Kaká"];

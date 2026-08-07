@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { googleLogin, fetchMe } from '../api/client';
+import { googleLogin, fetchMe, ApiError, codeToLocaleKey } from '../api/client';
 import type { AuthResponse, GroupWithBalance, MeResponse, PublicUser } from '../types';
 
 interface AuthState {
@@ -56,7 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Groups are empty on first login — user creates/joins them later
       setGroups([]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t('errors.googleLogin');
+      let msg: string;
+      if (err instanceof ApiError) {
+        const key = `errors.${codeToLocaleKey(err.code)}`;
+        msg = t(key, err.params ?? {});
+        // i18next returns the key path itself when a key is missing. Detect
+        // that and fall back to the English message so the banner is never blank.
+        if (msg === key) msg = err.message;
+      } else {
+        msg = err instanceof Error ? err.message : t('errors.googleLogin');
+      }
       setLoginError(msg);
     }
   }, [t]);
