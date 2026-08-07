@@ -137,7 +137,12 @@
       "balance": "Balance",
       "atRisk": "At risk"
     },
-    "atRiskEmpty": "—"
+    "atRiskEmpty": "—",
+    "medal": {
+      "first": "1st place",
+      "second": "2nd place",
+      "third": "3rd place"
+    }
   },
   "kickoff": {
     "startingNow": "starting now",

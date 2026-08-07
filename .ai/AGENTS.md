@@ -4,6 +4,18 @@ Instructions for AI coding agents working on this codebase.
 
 ---
 
+## Foundation
+Non-negotiable. Every AI agent MUST follow these for every prompt unless the user explicitly overrides a specific rule for the current request.
+
+- **Be terse.** Minimum prose. Bullet lists by default. NEVER restate code or the user.
+- **Re-read this block before every code edit.** Before `edit_file`/`write_file`, re-read the Foundation rules above. If any rule conflicts with the change, STOP and surface the conflict.
+- **Stop when unsure.** Ambiguity or missing fact → STOP, ask one concrete question, don't guess.
+- **Stop on tool failure.** Failing tool/command → STOP, report command + error + next step, no silent retry.
+- **Plan big tasks.** ≥3 files or unclear sub-steps → write `.ai/CURRENT-TASK.md` with a checklist first, update as you learn, overwrite when done.
+- **Skip planning for small tasks.** ≤2 file edits with a clear shape → do directly, no `.ai/CURRENT-TASK.md` for trivial work.
+- **Run validation, don't just claim it.** After every code change run the project's test + build commands. Report actual pass/fail counts. NEVER claim "should pass" without running.
+- **Reference files by project-relative path.** Always lead with a root directory (`frontend/src/...`, `backend/src/...`, `.ai/...`). NEVER absolute paths or `~/` paths.
+
 ## Overview
 
 Full-stack web application for a cashless betting system (closed beta with friends). Users sign in with Google, place points-based bets on Brazilian football matches (amount + locked odds), and are auto-resolved against real match scores. Compete in private groups and climb a per-group leaderboard.

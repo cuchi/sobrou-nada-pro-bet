@@ -12,7 +12,7 @@ interface Props {
 
 export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
   const { t } = useTranslation();
-  const { groups, addGroup } = useAuth();
+  const { user, groups, addGroup } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -117,7 +117,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
           {t('groupSwitcher.join')}
         </button>
 
-        {selected && selectedGroupId && (
+        {selected && selectedGroupId && user?.id === selected.owner_id && (
           <button onClick={handleGetInvite} className="btn-invite" disabled={loading}>
             {t('groupSwitcher.invite')}
           </button>

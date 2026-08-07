@@ -138,7 +138,12 @@
       "balance": "Saldo",
       "atRisk": "Em risco"
     },
-    "atRiskEmpty": "—"
+    "atRiskEmpty": "—",
+    "medal": {
+      "first": "1º lugar",
+      "second": "2º lugar",
+      "third": "3º lugar"
+    }
   },
   "kickoff": {
     "startingNow": "agora",

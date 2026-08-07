@@ -1280,6 +1280,20 @@ header h1 {
 
 .rank-cell {
   font-size: 1.1rem;
+  /* Flex centers the medal against the rank number's cap-middle
+     regardless of line-height, so the medal stays aligned whether the
+     cell contains an <img> or a plain number. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+}
+
+.podium-medal {
+  width: 1.4em;
+  height: 1.4em;
+  display: block;
+  flex-shrink: 0;
 }
 
 .podium-row {

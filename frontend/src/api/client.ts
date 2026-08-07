@@ -176,7 +176,7 @@ export async function joinGroup(inviteCode: string): Promise<unknown> {
       err.message ?? i18n.t('errors.internal'),
     );
   }
-  return res.json();
+  return data;
 }
 
 export async function getInviteCode(groupId: string): Promise<unknown> {

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="3rd place">
+  <circle cx="12" cy="12" r="11" fill="#1F1F23"/>
+  <circle cx="12" cy="12" r="9.5" fill="url(#bronze-grad)"/>
+  <circle cx="12" cy="12" r="9.5" fill="none" stroke="#7A4421" stroke-width="0.8"/>
+  <polygon points="12,6.5 13.4,10.2 17.3,10.2 14.1,12.6 15.2,16.3 12,13.9 8.8,16.3 9.9,12.6 6.7,10.2 10.6,10.2" fill="#3A1F0E"/>
+  <defs>
+    <radialGradient id="bronze-grad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#E8A46B"/>
+      <stop offset="55%" stop-color="#B17237"/>
+      <stop offset="100%" stop-color="#7A4421"/>
+    </radialGradient>
+  </defs>
+</svg>

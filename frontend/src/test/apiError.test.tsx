@@ -368,3 +368,33 @@ describe('Bug regression: GroupSwitcher.handleJoin shows the localized message, 
     expect(toastText).not.toContain("You're already in this group");
   });
 });
+
+describe('Bug regression: joinGroup success path returns the parsed body', () => {
+  // The bug: joinGroup() called `await res.json()` once to peek at the error
+  // body, then `return res.json()` again on the success path. The second
+  // call threw `Failed to execute 'json' on 'Response': body stream already
+  // read` because the first one had already drained the body.
+  //
+  // We assert that a 200 response resolves to the parsed JSON object, with
+  // no thrown error and no `body stream already read` exception.
+  it('returns the parsed body on a successful POST /api/groups/join/:code', async () => {
+    const group = {
+      id: 'g-1',
+      name: 'Test group',
+      invite_code: 'ABC123',
+      member_count: 2,
+      owner_id: 'u-1',
+    };
+    globalThis.fetch = (async () => {
+      return new Response(JSON.stringify({ group }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    localStorage.setItem('token', 'fake-jwt');
+
+    const result = await joinGroup('ABC123');
+    expect(result).toEqual({ group });
+  });
+});

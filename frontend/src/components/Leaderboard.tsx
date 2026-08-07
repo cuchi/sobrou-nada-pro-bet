@@ -25,7 +25,11 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
   );
   if (!entries || entries.length === 0) return null;
 
-  const podium = ['🥇', '🥈', '🥉'];
+  const podium = [
+      { src: '/medals/gold.svg', label: t('leaderboard.medal.first') },
+      { src: '/medals/silver.svg', label: t('leaderboard.medal.second') },
+      { src: '/medals/bronze.svg', label: t('leaderboard.medal.third') },
+    ];
 
   return (
     <div className="leaderboard">
@@ -43,7 +47,15 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
           {entries.map((entry, i) => (
             <tr key={entry.user_id} className={i < 3 ? 'podium-row' : ''}>
               <td className="rank-cell">
-                {i < 3 ? podium[i] : i + 1}
+                {i < 3 ? (
+                  <img
+                    src={podium[i].src}
+                    alt={podium[i].label}
+                    className="podium-medal"
+                  />
+                ) : (
+                  i + 1
+                )}
               </td>
               <td className="lb-name-cell">
                 {entry.avatar_url && (
