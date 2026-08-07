@@ -11,7 +11,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
  */
 export function UserMenu() {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -33,15 +33,31 @@ export function UserMenu() {
     };
   }, [open]);
 
-  if (!user) return null;
+  // While AuthProvider is fetching /api/auth/me we don't yet know if the
+  // user is signed in. Render a compact, disabled trigger button with a
+  // spinner inside — same 36×36 footprint as the real trigger, so the
+  // header layout doesn't shift when the user resolves.
+  //
+  // If we resolved with no user (loading=false, user=null) then the parent
+  // App switches to the logged-out branch (GoogleLoginButton etc.) and we
+  // don't render anything. This keeps the conditional in App.tsx honest:
+  // <UserMenu /> only when user OR loading; nothing otherwise.
+  if (!user && !loading) return null;
+  const triggerDisabled = !user;
 
   return (
     <div className="user-menu" ref={wrapperRef}>
-      <div className="user-chip" title={user.name}>
-        {user.avatar_url && (
-          <img src={user.avatar_url} alt="" className="avatar" />
-        )}
-      </div>
+      {user ? (
+        <div className="user-chip" title={user.name}>
+          {user.avatar_url && (
+            <img src={user.avatar_url} alt="" className="avatar" />
+          )}
+        </div>
+      ) : (
+        // Loading state: placeholder chip keeps the 28×28 footprint so the
+        // header doesn't reflow when the user resolves.
+        <div className="user-chip user-chip-loading" aria-hidden="true" />
+      )}
 
       <button
         type="button"
@@ -50,12 +66,21 @@ export function UserMenu() {
         aria-expanded={open}
         aria-label={t('header.userMenu.label')}
         title={t('header.userMenu.label')}
-        onClick={() => setOpen((o) => !o)}
+        disabled={triggerDisabled}
+        aria-busy={loading ? true : undefined}
+        onClick={() => {
+          if (triggerDisabled) return;
+          setOpen((o) => !o);
+        }}
       >
-        <span aria-hidden="true">⋮</span>
+        {loading ? (
+          <span className="menu-trigger-spinner" aria-hidden="true" />
+        ) : (
+          <span aria-hidden="true">⋮</span>
+        )}
       </button>
 
-      {open && (
+      {open && user && (
         <div className="user-menu-panel" role="menu">
           <div className="user-menu-header">
             <span className="user-menu-name" title={user.name}>{user.name}</span>

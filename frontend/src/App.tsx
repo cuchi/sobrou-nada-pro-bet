@@ -7,7 +7,6 @@ import { ToastProvider } from './components/Toast';
 import type { Bet } from './types';
 import BetForm from './components/BetForm';
 import BetList from './components/BetList';
-import { Spinner } from './components/Spinner';
 import GoogleLoginButton from './components/GoogleLoginButton';
 import DevLoginButton from './components/DevLoginButton';
 import GroupSwitcher from './components/GroupSwitcher';
@@ -80,9 +79,12 @@ function AppContent() {
       <header>
         <h1>{t('app.title')}</h1>
         <div className="header-right">
-          {loading ? (
-            <span className="auth-loading"><Spinner /></span>
-          ) : user ? (
+          {user || loading ? (
+            // UserMenu owns its own loading state: it renders a compact
+            // disabled trigger with a spinner while AuthProvider resolves
+            // /api/auth/me, and the real chip+trigger once the user is in.
+            // When loading is done and there's still no user, it bails out
+            // to null and the logged-out branch below takes over.
             <UserMenu />
           ) : (
             <>

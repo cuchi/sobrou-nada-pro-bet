@@ -51,6 +51,45 @@ describe('UserMenu', () => {
     expect(container.querySelector('.user-menu')).toBeNull();
   });
 
+  it('renders a disabled trigger with a spinner while AuthProvider is loading', async () => {
+    // Token in localStorage → AuthProvider will call fetchMe → loading stays
+    // true until the (stubbed) fetch resolves. We make the fetch hang so the
+    // component stays in the loading state for the duration of the test.
+    localStorage.setItem('token', 'fake-token-for-test');
+    globalThis.fetch = (async () =>
+      // Never resolves: AuthProvider's loading flag stays true.
+      new Promise<Response>(() => {})
+    ) as typeof fetch;
+
+    await i18n.changeLanguage(DEFAULT_LANGUAGE);
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <AuthProvider>
+          <UserMenu />
+        </AuthProvider>
+      </I18nextProvider>,
+    );
+    // Give the AuthProvider's useEffect one tick to flip loading=true (it
+    // starts true anyway).
+    await new Promise((r) => setTimeout(r, 10));
+
+    // The wrapper is rendered so the header layout has something to anchor.
+    expect(container.querySelector('.user-menu')).not.toBeNull();
+    // The trigger is present, disabled, and busy.
+    const trigger = container.querySelector<HTMLButtonElement>('.menu-trigger')!;
+    expect(trigger).not.toBeNull();
+    expect(trigger.disabled).toBe(true);
+    expect(trigger.getAttribute('aria-busy')).toBe('true');
+    // The spinner glyph is rendered inside (instead of the ⋮ dots).
+    expect(container.querySelector('.menu-trigger-spinner')).not.toBeNull();
+    expect(trigger.textContent).not.toContain('⋮');
+    // A placeholder chip keeps the avatar footprint.
+    expect(container.querySelector('.user-chip-loading')).not.toBeNull();
+    // Clicking the disabled trigger must NOT open a panel.
+    fireEvent.click(trigger);
+    expect(container.querySelector('.user-menu-panel')).toBeNull();
+  });
+
   it('renders the avatar + menu trigger when the user is signed in', async () => {
     setupLoggedInUser();
     await i18n.changeLanguage(DEFAULT_LANGUAGE);
