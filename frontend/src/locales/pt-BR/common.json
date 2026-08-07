@@ -1,0 +1,168 @@
+{
+  "app": {
+    "title": "🎲 Sobrou Nada Pro Bet",
+    "loginPrompt": "Entre com o Google para apostar",
+    "noGroupsPrompt": "Crie ou entre em um grupo para começar a apostar",
+    "selectGroupPrompt": "Selecione um grupo acima para fazer apostas"
+  },
+  "header": {
+    "languageSwitcher": {
+      "label": "Idioma",
+      "portuguese": "Português",
+      "en": "Inglês"
+    },
+    "userMenu": {
+      "label": "Menu da conta",
+      "logout": "Sair",
+      "language": "Idioma"
+    }
+  },
+  "footer": {
+    "backendStatus": {
+      "checking": "verificando...",
+      "ok": "online",
+      "offline": "offline",
+      "label": "Backend:"
+    },
+    "license": "Apache 2.0"
+  },
+  "betForm": {
+    "heading": "Aposte em <name>{{groupName}}</name>",
+    "odds": "Odds: {{odds}}x",
+    "amountPlaceholder": "Valor (pts)",
+    "placeBet": "Fazer aposta",
+    "placing": "Apostando...",
+    "yourPick": "Sua escolha:",
+    "errors": {
+      "invalidAmount": "Digite um valor válido",
+      "insufficientBalance": "Pontos insuficientes",
+      "noOdds": "Sem odds disponíveis para esta previsão",
+      "generic": "Erro ao criar aposta"
+    }
+  },
+  "betList": {
+    "heading_one": "Todas as apostas ({{count}})",
+    "heading_other": "Todas as apostas ({{count}})",
+    "empty": "Nenhuma aposta ainda. Faça sua primeira!",
+    "columns": {
+      "user": "Usuário",
+      "event": "Evento",
+      "pick": "Palpite",
+      "amount": "Valor",
+      "odds": "Odds",
+      "status": "Status",
+      "bettedAt": "Apostado em"
+    },
+    "payoutTooltip": "Retorno: {{payout}} pts",
+        "statuses": {
+          "pending": "Pendente",
+          "won": "Ganha",
+          "lost": "Perdida"
+        },
+    "prediction": {
+      "homeWinFallback": "Vitória do mandante",
+      "awayWinFallback": "Vitória do visitante",
+      "draw": "Empate",
+      "noPrediction": "—"
+    },
+    "noEvent": "—",
+    "pagination": {
+      "prev": "‹ Anterior",
+      "next": "Próximo ›",
+      "page": "{{current}} / {{total}}"
+    }
+  },
+  "eventPicker": {
+    "heading": "Próximas partidas",
+    "searchPlaceholder": "Buscar time...",
+    "loading": "Carregando partidas...",
+    "noEvents": "Não há próximas partidas no momento. Volte mais tarde.",
+    "noMatchesForQuery": "Nenhuma partida encontrada para “{{query}}”.",
+    "vs": "vs",
+    "recentResults": "Resultados recentes ({{count}})",
+    "predictionBar": {
+      "yourPick": "Sua escolha:",
+      "draw": "Empate"
+    },
+    "closedNotice": {
+      "awaitingResult": "Apostas encerradas — aguardando resultado.",
+      "live": "Apostas encerradas — jogo em andamento.",
+      "finished": "Apostas encerradas — jogo finalizado.",
+      "cancelled": "Partida cancelada."
+    },
+    "statusBadge": {
+      "scheduled": "Agendada",
+      "live": "Ao vivo",
+      "finished": "Finalizada",
+      "cancelled": "Cancelada",
+      "awaitingResult": "Aguardando resultado",
+      "ariaScheduled": "Status: agendada",
+      "ariaLive": "Status: ao vivo",
+      "ariaFinished": "Status: finalizada",
+      "ariaCancelled": "Status: cancelada",
+      "ariaAwaitingResult": "Status: aguardando resultado"
+    },
+    "cardAriaLabel": "{{home}} vs {{away}}, {{status}}",
+    "cardStatus": {
+      "scheduled": "agendada",
+      "live": "ao vivo",
+      "finished": "finalizada",
+      "cancelled": "cancelada"
+    }
+  },
+  "groupSwitcher": {
+    "noGroups": "Nenhum grupo",
+    "selectGroup": "Selecione um grupo...",
+    "create": "+ Criar",
+    "join": "+ Entrar",
+    "invite": "Convidar",
+    "groupNamePlaceholder": "Nome do grupo",
+    "inviteCodePlaceholder": "Código de convite",
+    "submitCreate": "Criar",
+    "submitJoin": "Entrar",
+    "cancel": "Cancelar",
+    "copy": "Copiar",
+    "closeAriaLabel": "Fechar",
+    "errors": {
+      "createFailed": "Falha ao criar grupo",
+      "joinFailed": "Falha ao entrar",
+      "inviteFailed": "Falha ao obter código de convite"
+    }
+  },
+  "leaderboard": {
+    "heading": "Ranking",
+    "loading": "Carregando ranking...",
+    "columns": {
+      "rank": "#",
+      "player": "Jogador",
+      "balance": "Saldo",
+      "atRisk": "Em risco"
+    },
+    "atRiskEmpty": "—"
+  },
+  "kickoff": {
+    "startingNow": "agora",
+    "inOneMinute": "em <1m",
+    "inMinutes": "em {{count}}m",
+    "inHours": "em {{count}}h",
+    "inHoursMinutes": "em {{hours}}h {{minutes}}m",
+    "tomorrowAt": "amanhã {{time}}"
+  },
+  "units": {
+    "points": "pts",
+    "pointsAtRisk": "-{{amount}} pts"
+  },
+  "errors": {
+    "googleLogin": "Falha no login com Google",
+    "devLogin": "Falha no login de dev",
+    "fetchUser": "Falha ao buscar usuário",
+    "fetchBets": "Falha ao buscar apostas",
+    "createBet": "Falha ao criar aposta",
+    "createGroup": "Falha ao criar grupo",
+    "joinGroup": "Falha ao entrar no grupo",
+    "getInvite": "Falha ao obter convite",
+    "fetchLeaderboard": "Falha ao buscar ranking",
+    "fetchEvents": "Falha ao buscar eventos",
+    "devLoginAlert": "Falha no login de dev — o backend está rodando?"
+  }
+}

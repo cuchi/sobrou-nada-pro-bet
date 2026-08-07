@@ -1,54 +1,67 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatPoints, useActiveLocale } from './Points';
 import type { Bet } from '../types';
 
 const PAGE_SIZE = 10;
 
-function predictionText(bet: Bet): string {
-  switch (bet.prediction) {
-    case 'home_win':
-      return bet.home_team || 'Home win';
-    case 'away_win':
-      return bet.away_team || 'Away win';
-    case 'draw':
-      return 'Draw';
-    default:
-      return '—';
-  }
-}
-
-function bettedAt(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  return { date: `${dd}/${mm}/${d.getFullYear()}`, time: `${hh}:${ss}` };
-}
-
 export default function BetList({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
+  const locale = useActiveLocale();
   const [page, setPage] = useState(0);
 
   if (bets.length === 0) {
-    return <p className="empty">No bets yet. Place your first one!</p>;
+    return <p className="empty">{t('betList.empty')}</p>;
   }
 
   const pageCount = Math.max(1, Math.ceil(bets.length / PAGE_SIZE));
   const current = Math.min(page, pageCount - 1);
   const rows = bets.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
 
+  function predictionText(bet: Bet): string {
+    switch (bet.prediction) {
+      case 'home_win':
+        return bet.home_team || t('betList.prediction.homeWinFallback');
+      case 'away_win':
+        return bet.away_team || t('betList.prediction.awayWinFallback');
+      case 'draw':
+        return t('betList.prediction.draw');
+      default:
+        return t('betList.prediction.noPrediction');
+    }
+  }
+
+  function statusLabel(status: Bet['status']): string {
+    return t(`betList.statuses.${status}`);
+  }
+
+  function bettedAt(iso: string): { date: string; time: string } {
+    const d = new Date(iso);
+    const dateFmt = new Intl.DateTimeFormat(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const timeFmt = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return { date: dateFmt.format(d), time: timeFmt.format(d) };
+  }
+
   return (
     <div className="bet-list">
-      <h2>All Bets ({bets.length})</h2>
+      <h2>{t('betList.heading', { count: bets.length })}</h2>
       <table>
         <thead>
           <tr>
-            <th>User</th>
-            <th>Event</th>
-            <th>Pick</th>
-            <th>Amount</th>
-            <th>Odds</th>
-            <th>Status</th>
-            <th>Betted at</th>
+            <th>{t('betList.columns.user')}</th>
+            <th>{t('betList.columns.event')}</th>
+            <th>{t('betList.columns.pick')}</th>
+            <th>{t('betList.columns.amount')}</th>
+            <th>{t('betList.columns.odds')}</th>
+            <th>{t('betList.columns.status')}</th>
+            <th>{t('betList.columns.bettedAt')}</th>
           </tr>
         </thead>
         <tbody>
@@ -77,20 +90,22 @@ export default function BetList({ bets }: { bets: Bet[] }) {
                     {bet.home_team} vs {bet.away_team}
                   </span>
                 ) : (
-                  <span className="no-event">—</span>
+                  <span className="no-event">{t('betList.noEvent')}</span>
                 )}
               </td>
               <td>
                 {bet.prediction ? (
                   <span className="prediction-tag">{predictionText(bet)}</span>
                 ) : (
-                  '—'
+                  t('betList.prediction.noPrediction')
                 )}
               </td>
-              <td>{bet.amount.toFixed(0)} pts</td>
-              <td title={`Payout: ${(bet.amount * bet.odds).toFixed(0)} pts`}>{bet.odds}x</td>
+              <td>{formatPoints(bet.amount, locale)}</td>
+              <td title={t('betList.payoutTooltip', { payout: (bet.amount * bet.odds).toFixed(0) })}>
+                {bet.odds}x
+              </td>
               <td>
-                <span className="status-badge">{bet.status}</span>
+                <span className="status-badge">{statusLabel(bet.status)}</span>
               </td>
               <td className="betted-at-cell">
                 <span className="betted-at-date">{bettedAt(bet.created_at).date}</span>
@@ -108,17 +123,17 @@ export default function BetList({ bets }: { bets: Bet[] }) {
             onClick={() => setPage(current - 1)}
             disabled={current === 0}
           >
-            ‹ Prev
+            {t('betList.pagination.prev')}
           </button>
           <span className="page-indicator">
-            {current + 1} / {pageCount}
+            {t('betList.pagination.page', { current: current + 1, total: pageCount })}
           </span>
           <button
             className="btn-page"
             onClick={() => setPage(current + 1)}
             disabled={current >= pageCount - 1}
           >
-            Next ›
+            {t('betList.pagination.next')}
           </button>
         </div>
       )}

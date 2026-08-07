@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { createBet } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import type { Bet, Event, Prediction } from '../types';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function BetForm({ groupId, groupName, balance, bets, onBetCreated, onBetSettled, onBetFailed }: Props) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -57,17 +59,17 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
 
     const pts = Number(amount);
     if (!amount || pts < 1) {
-      setError('Enter a valid amount');
+      setError(t('betForm.errors.invalidAmount'));
       return;
     }
 
     if (pts > balance) {
-      setError('Not enough points');
+      setError(t('betForm.errors.insufficientBalance'));
       return;
     }
 
     if (odds < 1.01) {
-      setError('No odds available for this prediction');
+      setError(t('betForm.errors.noOdds'));
       return;
     }
 
@@ -109,7 +111,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
       onBetSettled();
     } catch (err) {
       onBetFailed();
-      setError(err instanceof Error ? err.message : 'Error creating bet');
+      setError(err instanceof Error ? err.message : t('betForm.errors.generic'));
     } finally {
       setLoading(false);
     }
@@ -118,7 +120,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
   return (
     <form onSubmit={handleSubmit} className="bet-form" noValidate>
       <h2>
-        Place a Bet in <strong>{groupName}</strong>
+        <Trans i18nKey="betForm.heading" values={{ groupName }} components={{ name: <strong /> }} />
         <span className="balance-pill">{balance.toFixed(0)} pts</span>
       </h2>
 
@@ -128,12 +130,12 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
         <>
           {odds > 0 && (
             <div className="odds-display">
-              Odds: <strong>{odds}x</strong>
+              {t('betForm.odds', { odds })}
             </div>
           )}
           <div className="bet-inputs">
             <input
-              placeholder="Amount (pts)"
+              placeholder={t('betForm.amountPlaceholder')}
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -142,7 +144,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
               onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
             />
             <button type="submit" disabled={loading} className="btn-place-bet">
-              {loading ? 'Placing...' : 'Place Bet'}
+              {loading ? t('betForm.placing') : t('betForm.placeBet')}
             </button>
           </div>
         </>

@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { devLogin } from '../api/client';
 import type { AuthResponse } from '../types';
 
 export default function DevLoginButton() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
@@ -13,7 +15,7 @@ export default function DevLoginButton() {
       // Reload to pick up the token and trigger /api/auth/me
       window.location.reload();
     } catch {
-      alert('Dev login failed — is the backend running?');
+      alert(t('errors.devLoginAlert'));
     } finally {
       setLoading(false);
     }

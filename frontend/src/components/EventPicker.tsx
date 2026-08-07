@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fetchEvents } from '../api/client';
 import { getCrestUrl } from '../crests';
 import { kickoffLabel } from '../kickoff';
 import type { Event, EventStatus, Prediction } from '../types';
+import { useActiveLocale } from './Points';
 import { Spinner } from './Spinner';
 import { usePolling } from '../usePolling';
 
@@ -25,40 +27,37 @@ function oddsLabel(ev: Event, pred: Prediction): string {
   return o != null ? `${o}x` : '';
 }
 
-const recentWhenFmt = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
-/** Format a recent match's start time as "DD/MM HH:MM" for compact row display. */
-function formatRecentWhen(iso: string): string {
-  return recentWhenFmt.format(new Date(iso));
-}
-
 function TeamCrest({ name }: { name: string }) {
   return <img src={getCrestUrl(name)!} alt="" className="team-crest" />;
 }
 
 function StatusBadge({ status, awaitingResult }: { status: EventStatus; awaitingResult?: boolean }) {
+  const { t } = useTranslation();
   // awaiting-result is a derived overlay: the backend labeled this row
   // `finished` but its stored status is still `scheduled`, meaning the match
   // window elapsed without /admin/bets/resolve being called yet. Visually
   // distinct so users don't read it as a confirmed outcome.
   if (awaitingResult && status === 'finished') {
     return (
-      <span className="event-status-badge awaiting-result" aria-label="Status: awaiting result">
-        Awaiting result
+      <span
+        className="event-status-badge awaiting-result"
+        aria-label={t('eventPicker.statusBadge.ariaAwaitingResult')}
+      >
+        {t('eventPicker.statusBadge.awaitingResult')}
       </span>
     );
   }
+  const ariaKey =
+    status === 'scheduled' ? 'ariaScheduled'
+    : status === 'live' ? 'ariaLive'
+    : status === 'finished' ? 'ariaFinished'
+    : 'ariaCancelled';
   return (
-    <span className={`event-status-badge ${status}`} aria-label={`Status: ${status}`}>
-      {status === 'scheduled' ? 'Scheduled'
-        : status === 'live' ? 'Live'
-        : status === 'finished' ? 'Finished'
-        : 'Cancelled'}
+    <span
+      className={`event-status-badge ${status}`}
+      aria-label={t(`eventPicker.statusBadge.${ariaKey}`)}
+    >
+      {t(`eventPicker.statusBadge.${status}`)}
     </span>
   );
 }
@@ -69,6 +68,8 @@ function isClosed(status: EventStatus): boolean {
 }
 
 export default function EventPicker({ onSelect, onEventChange, bettedEventIds, resetKey }: Props) {
+  const { t } = useTranslation();
+  const locale = useActiveLocale();
   const [events, loading] = usePolling<Event[]>(
     useCallback(() => fetchEvents('scheduled,live,finished,cancelled') as Promise<Event[]>, []),
     60_000,
@@ -77,6 +78,30 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [query, setQuery] = useState('');
   const [showRecent, setShowRecent] = useState(false);
+
+  // Lazy locale-driven formatters — recreated when the active locale flips.
+  const recentWhenFmt = useMemo(
+    () => new Intl.DateTimeFormat(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    [locale],
+  );
+  const cardDateFmt = useMemo(
+    () => new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit' }),
+    [locale],
+  );
+  const cardTimeFmt = useMemo(
+    () => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }),
+    [locale],
+  );
+
+  /** Format a recent match's start time as "DD/MM HH:MM" for compact row display. */
+  function formatRecentWhen(iso: string): string {
+    return recentWhenFmt.format(new Date(iso));
+  }
 
   useEffect(() => {
     setSelectedId(null);
@@ -159,8 +184,8 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
 
   if (loading) return (
     <div className="event-picker">
-      <h3 className="event-picker-heading">Upcoming matches</h3>
-      <Spinner label="Loading matches..." />
+      <h3 className="event-picker-heading">{t('eventPicker.heading')}</h3>
+      <Spinner label={t('eventPicker.loading')} />
     </div>
   );
 
@@ -179,23 +204,25 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
           open={showRecent}
           onToggle={(e) => setShowRecent((e.target as HTMLDetailsElement).open)}
         >
-          <summary className="recent-results-summary">Recent results ({recentTotal})</summary>
+          <summary className="recent-results-summary">{t('eventPicker.recentResults', { count: recentTotal })}</summary>
           <div className="recent-results-list">
             {previous.map((ev) => (
               <div key={ev.id} className={`recent-result event-status-${ev.status}`}>
                 <span className="recent-result-teams">
-                  {ev.home_team} vs {ev.away_team}
+                  <span className="recent-result-team">{ev.home_team}</span>
+                  {' vs '}
+                  <span className="recent-result-team">{ev.away_team}</span>
                 </span>
                 <div className="recent-result-meta">
-                  <span className="recent-result-when">
-                    {formatRecentWhen(ev.start_time)}
-                  </span>
-                  <StatusBadge status={ev.status} awaitingResult={ev.awaiting_result} />
                   {ev.home_score != null && ev.away_score != null && (
                     <span className="recent-result-score">
                       {ev.home_score} – {ev.away_score}
                     </span>
                   )}
+                  <StatusBadge status={ev.status} awaitingResult={ev.awaiting_result} />
+                  <span className="recent-result-when">
+                    {formatRecentWhen(ev.start_time)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -203,31 +230,29 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
         </details>
       )}
 
-      <h3 className="event-picker-heading">Upcoming matches</h3>
+      <h3 className="event-picker-heading">{t('eventPicker.heading')}</h3>
 
       {upcoming.length > 0 && (
         <input
           type="search"
           className="event-search"
-          placeholder="Search team..."
+          placeholder={t('eventPicker.searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       )}
 
       {upcoming.length === 0 ? (
-        <p className="no-events">
-          No upcoming matches right now. Check back later.
-        </p>
+        <p className="no-events">{t('eventPicker.noEvents')}</p>
       ) : upcomingFiltered.length === 0 ? (
-        <p className="no-events">No matches found for “{query}”.</p>
+        <p className="no-events">{t('eventPicker.noMatchesForQuery', { query })}</p>
       ) : (
         <div className="events-grid">
           {upcomingFiltered.map((ev) => {
             const betted = bettedEventIds.has(ev.id);
             const closed = isClosed(ev.status);
             const disabled = betted || closed;
-            const kickoff = ev.status === 'scheduled' ? kickoffLabel(ev.start_time) : null;
+            const kickoff = ev.status === 'scheduled' ? kickoffLabel(ev.start_time, new Date(), locale, t) : null;
             return (
               <button
                 key={ev.id}
@@ -235,12 +260,12 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
                 className={`event-card ${selectedId === ev.id ? 'selected' : ''} ${betted ? 'betted' : ''} ${ev.status}`}
                 onClick={() => !disabled && handleEventSelect(ev.id)}
                 disabled={disabled}
-                aria-label={`${ev.home_team} vs ${ev.away_team}, ${ev.status}`}
+                aria-label={t('eventPicker.cardAriaLabel', { home: ev.home_team, away: ev.away_team, status: t(`eventPicker.cardStatus.${ev.status}`) })}
               >
                 <span className="team-name home">{ev.home_team}</span>
                 <span className="matchup-core">
                   <TeamCrest name={ev.home_team} />
-                  <span className="vs-label">vs</span>
+                  <span className="vs-label">{t('eventPicker.vs')}</span>
                   <TeamCrest name={ev.away_team} />
                 </span>
                 <span className="team-name away">{ev.away_team}</span>
@@ -258,14 +283,10 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
                   ) : (
                     <>
                       <span className="event-date">
-                        {new Intl.DateTimeFormat('pt-BR', {
-                          day: '2-digit', month: '2-digit',
-                        }).format(new Date(ev.start_time))}
+                        {cardDateFmt.format(new Date(ev.start_time))}
                       </span>
                       <span className="event-time">
-                        {new Intl.DateTimeFormat('pt-BR', {
-                          hour: '2-digit', minute: '2-digit',
-                        }).format(new Date(ev.start_time))}
+                        {cardTimeFmt.format(new Date(ev.start_time))}
                       </span>
                     </>
                   )}
@@ -279,14 +300,14 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
       {selected && (
         selectedIsClosed ? (
           <p className="event-closed-notice">
-            {selectedAwaitingResult && 'Betting is closed — awaiting result.'}
-            {!selectedAwaitingResult && selected.status === 'live' && 'Betting is closed — match is in progress.'}
-            {!selectedAwaitingResult && selected.status === 'finished' && 'Betting is closed — match has finished.'}
-            {!selectedAwaitingResult && selected.status === 'cancelled' && 'Match was cancelled.'}
+            {selectedAwaitingResult && t('eventPicker.closedNotice.awaitingResult')}
+            {!selectedAwaitingResult && selected.status === 'live' && t('eventPicker.closedNotice.live')}
+            {!selectedAwaitingResult && selected.status === 'finished' && t('eventPicker.closedNotice.finished')}
+            {!selectedAwaitingResult && selected.status === 'cancelled' && t('eventPicker.closedNotice.cancelled')}
           </p>
         ) : (
           <div className="prediction-bar">
-            <span className="prediction-label">Your pick:</span>
+            <span className="prediction-label">{t('eventPicker.predictionBar.yourPick')}</span>
             <button
               type="button"
               className={`btn-prediction ${prediction === 'home_win' ? 'active' : ''}`}
@@ -302,7 +323,7 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
               className={`btn-prediction ${prediction === 'draw' ? 'active' : ''}`}
               onClick={() => handlePredictionSelect('draw')}
             >
-              <span className="prediction-team">Draw</span>
+              <span className="prediction-team">{t('eventPicker.predictionBar.draw')}</span>
               {oddsLabel(selected, 'draw') && (
                 <span className="prediction-odds">{oddsLabel(selected, 'draw')}</span>
               )}

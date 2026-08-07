@@ -22,8 +22,8 @@ Full-stack web application for a cashless betting system (closed beta with frien
 | 8 | Deploy — Dockerfile, Render, managed Postgres, prod CORS, HTTPS, CI | ✅ Shipped |
 | 9 | SPA polish — spinners, toasts, optimistic updates, polling | ✅ Shipped |
 | 12 | Backend tests & coverage — 28 integration tests, 76% line coverage | ✅ Shipped |
-| — | Match card event status label & styling | 🔲 Todo |
-| 10 | Internationalization (en / pt-BR) | 🔲 Todo |
+| — | Match card event status label & styling | ✅ Shipped |
+| 10 | Internationalization (en / pt-BR) | 🔲 Phases A–C done (infra, UI strings, kickoff); Phase D (backend error codes) TODO |
 | — | SPA polish (remaining) | 🔲 Todo |
 | — | Emails — bet resolved + new events | 🔲 Todo |
 | — | Hardening — rate limits, security headers, auto-resolve polish | 🔲 Todo |
@@ -130,13 +130,24 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
     ├── vite.config.ts          # Dev proxy to backend :3000
     ├── .env.example            # Template for .env.local
     ├── index.html
+    ├── public/                 # Static assets served as-is from /
+    │   ├── crests/             # Team-name → SVG crest mapping (mirrors src/crests.ts)
+    │   └── flags/              # br.svg + us.svg for the language switcher
     └── src/
         ├── main.tsx
         ├── App.tsx             # Root: providers, layout, auth gating, group in URL
         ├── App.css             # Dark theme, responsive, color palette
         ├── crests.ts           # Team name → local SVG mapping
+        ├── i18n.ts             # i18next init, locale detection, supported languages
+        ├── kickoff.ts          # Kickoff countdown ladder (locale-aware)
         ├── usePolling.ts       # Polling hook (deep-compare, no flicker on no-diff)
         ├── vite-env.d.ts
+        ├── locales/
+        │   ├── en/common.json  # English strings
+        │   └── pt-BR/common.json # Brazilian Portuguese strings
+        ├── test/
+        │   ├── setup.ts        # jest-dom matchers
+        │   └── i18n.test.tsx   # Locale detection & switcher behaviour
         ├── types/
         │   └── index.ts        # Bet, BetStatus, EventStatus, PublicUser, AuthResponse, ...
         ├── api/
@@ -148,6 +159,7 @@ All colors are defined as CSS custom properties on `:root` in `App.css`.
             ├── BetList.tsx      # Table: avatar, event, pick, odds tooltip, status, betted-at + pagination
             ├── EventPicker.tsx  # Scrollable match list with SVG crests, odds, search
             ├── GroupSwitcher.tsx # Dropdown + create/join/invite-code buttons
+            ├── LanguageSwitcher.tsx # Flag-emoji button group in the header
             ├── Leaderboard.tsx  # Podium + ranking table (balance + at-risk)
             ├── Toast.tsx        # ToastProvider + useToast hook
             ├── GoogleLoginButton.tsx
@@ -205,6 +217,16 @@ Admin endpoints use a secret token passed via the `X-Admin-Token` header (not JW
 7. `GET /api/auth/me` validates the stored token on page load.
 
 ## Running Locally
+
+The frontend pins Node 22 via `frontend/.nvmrc`. Use [nvm](https://github.com/nvm-sh/nvm) so the right version is picked up automatically:
+
+```sh
+# from the repo root or frontend/ — nvm auto-switches when you cd
+nvm use             # picks up frontend/.nvmrc
+node --version      # should print v22.x
+```
+
+Then:
 
 ```sh
 # Terminal 1 — Database

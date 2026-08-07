@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 const BASE = '/api';
 
 function authHeaders(): Record<string, string> {
@@ -19,7 +21,7 @@ export async function googleLogin(credential: string): Promise<unknown> {
   });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || 'Google login failed';
+    const msg = (data as { error?: string }).error || i18n.t('errors.googleLogin');
     throw new Error(msg);
   }
   return data;
@@ -29,7 +31,7 @@ export async function devLogin(): Promise<unknown> {
   const res = await fetch(`${BASE}/dev/login`, { method: 'POST' });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || 'Dev login failed';
+    const msg = (data as { error?: string }).error || i18n.t('errors.devLogin');
     throw new Error(msg);
   }
   return data;
@@ -37,7 +39,7 @@ export async function devLogin(): Promise<unknown> {
 
 export async function fetchMe(): Promise<unknown> {
   const res = await fetch(`${BASE}/auth/me`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch user');
+  if (!res.ok) throw new Error(i18n.t('errors.fetchUser'));
   return res.json();
 }
 
@@ -45,7 +47,7 @@ export async function fetchMe(): Promise<unknown> {
 
 export async function fetchBets(groupId: string): Promise<unknown> {
   const res = await fetch(`${BASE}/bets?group_id=${groupId}`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch bets');
+  if (!res.ok) throw new Error(i18n.t('errors.fetchBets'));
   return res.json();
 }
 
@@ -63,7 +65,7 @@ export async function createBet(req: {
   });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || 'Failed to create bet';
+    const msg = (data as { error?: string }).error || i18n.t('errors.createBet');
     throw new Error(msg);
   }
   return data;
@@ -77,7 +79,7 @@ export async function createGroup(name: string): Promise<unknown> {
     headers: authHeaders(),
     body: JSON.stringify({ name }),
   });
-  if (!res.ok) throw new Error('Failed to create group');
+  if (!res.ok) throw new Error(i18n.t('errors.createGroup'));
   return res.json();
 }
 
@@ -88,21 +90,21 @@ export async function joinGroup(inviteCode: string): Promise<unknown> {
   });
   const data = await res.json();
   if (!res.ok) {
-    const msg = (data as { error?: string }).error || 'Failed to join group';
+    const msg = (data as { error?: string }).error || i18n.t('errors.joinGroup');
     throw new Error(msg);
   }
-  return data;
+  return res.json();
 }
 
 export async function getInviteCode(groupId: string): Promise<unknown> {
   const res = await fetch(`${BASE}/groups/${groupId}/invite`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to get invite');
+  if (!res.ok) throw new Error(i18n.t('errors.getInvite'));
   return res.json();
 }
 
 export async function fetchLeaderboard(groupId: string): Promise<unknown> {
   const res = await fetch(`${BASE}/groups/${groupId}/leaderboard`, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch leaderboard');
+  if (!res.ok) throw new Error(i18n.t('errors.fetchLeaderboard'));
   return res.json();
 }
 
@@ -111,6 +113,6 @@ export async function fetchLeaderboard(groupId: string): Promise<unknown> {
 export async function fetchEvents(status?: string): Promise<unknown> {
   const url = status ? `${BASE}/events?status=${status}` : `${BASE}/events`;
   const res = await fetch(url, { headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to fetch events');
+  if (!res.ok) throw new Error(i18n.t('errors.fetchEvents'));
   return res.json();
 }

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { googleLogin, fetchMe } from '../api/client';
 import type { AuthResponse, GroupWithBalance, MeResponse, PublicUser } from '../types';
 
@@ -18,6 +19,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<PublicUser | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [groups, setGroups] = useState<GroupWithBalance[]>([]);
@@ -54,10 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Groups are empty on first login — user creates/joins them later
       setGroups([]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Login failed';
+      const msg = err instanceof Error ? err.message : t('errors.googleLogin');
       setLoginError(msg);
     }
-  }, []);
+  }, [t]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');

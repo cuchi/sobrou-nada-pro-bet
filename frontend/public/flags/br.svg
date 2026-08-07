@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 24" role="img" aria-label="Brazil">
+  <!-- Green field -->
+  <rect width="32" height="24" fill="#009C3B"/>
+  <!-- Yellow diamond -->
+  <polygon points="16,3 29,12 16,21 3,12" fill="#FFDF00"/>
+  <!-- Blue globe -->
+  <circle cx="16" cy="12" r="4.2" fill="#002776"/>
+  <!-- White equatorial band -->
+  <path d="M 11.9 12 Q 16 10.6 20.1 12" stroke="#FFFFFF" stroke-width="0.7" fill="none"/>
+</svg>

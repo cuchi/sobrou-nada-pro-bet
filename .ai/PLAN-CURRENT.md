@@ -84,15 +84,97 @@ The event card now surfaces the match state at a glance: status badge per card, 
 
 ## 2. Internationalization (i18n) 🔲
 
-Support English (en) and Brazilian Portuguese (pt-BR).
+Support English (en) and Brazilian Portuguese (pt-BR). App branding is bilingual but copy reads as pt-BR to start (the existing date format on upcoming cards is `'pt-BR'`, the seed team names are Brasileirão clubs, and the user's domain is Brazilian football). The work is in three phases.
 
-- [ ] i18n library — `react-i18next` with language detection (browser `Accept-Language` + manual toggle)
-- [ ] Translation files — `locales/en.json` and `locales/pt-BR.json` with all UI strings
-- [ ] Language switcher — flag or dropdown in the header, persisted to `localStorage`
-- [ ] Translate all components — headings, buttons, labels, status badges, errors, empty states
-- [ ] Number/date formatting — use `Intl` with locale-aware formatting (already partially done for dates)
-- [ ] Team names — keep as-is (proper nouns, not translated)
-- [ ] Backend error messages — optionally localize based on `Accept-Language` header (lower priority)
+### Phase A — infrastructure ✅
+
+Stand up the i18n plumbing. Nothing user-visible changes yet.
+
+- [x] Pick library — `react-i18next` (mature, small, integrates cleanly with React 19 + Vite, supports lazy locale chunks, ICU MessageFormat out of the box, `localStorage` detector out of the box). Alternatives considered: `react-intl` (heavier, better for true ICU but we don't need that yet), `lingui` (excellent but adds a build step).
+- [x] Wire `i18n.ts` — calls `i18next.init({ ... })` once with the `react-i18next` and `i18next-browser-languagedetector` plugins, loaded via `import './i18n'` at the top of `App.tsx`.
+- [x] Locale files — `frontend/src/locales/en/common.json` and `pt-BR/common.json`. Top-level namespace `common` for now; split into feature namespaces (`eventPicker`, `betForm`, etc.) only when the `common` file exceeds ~200 keys.
+- [x] Locale detection — `i18next-browser-languagedetector` reading `localStorage` first, then `navigator.language`, then falling back to `pt-BR`. A `?lng=` query param overrides everything (used by the smoke test + humans previewing a locale). Default for new users is `pt-BR` (Brazilian product).
+- [x] `localStorage` persistence — language choice persisted under `i18nextLng`. Survives reloads, logouts, and SSR-less React 19 refresh.
+- [x] Smoke test — Vitest + @testing-library/react covers locale detection (default = pt-BR), clicking each flag button changes `i18n.resolvedLanguage`, `aria-pressed` flips correctly, and the chosen locale is persisted to `localStorage`. Run with `npm test`. A `?lng=` query-param override exists in `i18n.ts` for manual browser testing.
+- [x] Language switcher UI — `frontend/src/components/LanguageSwitcher.tsx`, flag-emoji button group in `.header-right` (🇧🇷 / 🇺🇸), one active at a time, click switches the locale immediately. Replaces the previous `backend-status` indicator (`App.tsx`), which moved to a footer row in the same PR. The header right area keeps the user-info block (avatar + name + logout) and gains the language switcher.
+
+### Phase B — extract & translate UI strings ✅
+
+Inventory of every hard-coded user-facing string in `frontend/src/components/`:
+
+| Component | String | Notes |
+|---|---|---|
+| `App.tsx` | `🎲 Sobrou Nada Pro Bet` (h1) | Keep the emoji; translate the title? Decision needed — title is a brand name and likely stays as-is. |
+| `App.tsx` | login error message from `loginError` state | Server-supplied, see Phase D for backend localisation. |
+| `BetForm.tsx` | `Place a Bet in {groupName}` | Interpolation. |
+| `BetForm.tsx` | `Odds: {odds}x` | Interpolation. |
+| `BetForm.tsx` | `Amount (pts)` placeholder | |
+| `BetForm.tsx` | `{amount} pts` | Interpolation, also needs `Intl.NumberFormat` for thousands. |
+| `BetForm.tsx` | `Pick:` label inside prediction bar | |
+| `BetForm.tsx` | `Draw` (prediction button) | |
+| `BetList.tsx` | `All Bets ({count})` | Interpolation. |
+| `BetList.tsx` | `User` / `Event` / `Pick` / `Amount` / `Odds` / `Status` / `Betted at` | Column headers (7). |
+| `BetList.tsx` | `pts` suffix in amount cells | Unit, not a translation. |
+| `BetList.tsx` | `Payout: {x} pts` (title attribute) | Interpolation. |
+| `EventPicker.tsx` | `Recent results ({count})` | Interpolation. |
+| `EventPicker.tsx` | `Upcoming matches` | |
+| `EventPicker.tsx` | `Search team...` placeholder | |
+| `EventPicker.tsx` | `Loading matches...` | |
+| `EventPicker.tsx` | `No upcoming matches right now. Check back later.` | |
+| `EventPicker.tsx` | `No matches found for "{query}".` | Interpolation. |
+| `EventPicker.tsx` | `Betting is closed — match is in progress.` | |
+| `EventPicker.tsx` | `Betting is closed — match has finished.` | |
+| `EventPicker.tsx` | `Betting is closed — awaiting result.` | |
+| `EventPicker.tsx` | `Match was cancelled.` | |
+| `EventPicker.tsx` | `vs` (in event cards) | Decorative connector. |
+| `EventPicker.tsx` | `Status: ...` aria-label | aria-labels should be localised too. |
+| `StatusBadge` (in `EventPicker.tsx`) | `Scheduled` / `Live` / `Finished` / `Cancelled` / `Awaiting result` | |
+| `GroupSwitcher.tsx` | `Create` / `Join` / `Copy` buttons | |
+| `GroupSwitcher.tsx` | `Group name` / `Invite code` placeholders | |
+| `GroupSwitcher.tsx` | `Close` aria-label | |
+| `Leaderboard.tsx` | `Leaderboard` heading | |
+| `Leaderboard.tsx` | `#` / `Player` / `Balance` / `At risk` column headers | |
+| `Leaderboard.tsx` | `{balance} pts` | Interpolation. |
+| `Toast.tsx` | messages are server-supplied | See Phase D. |
+
+Also:
+- [x] Replace every literal in the table above with `t('namespace.key')` calls. (~80 keys under namespaced sections in `common.json`: `app`, `header`, `footer`, `betForm`, `betList`, `eventPicker`, `groupSwitcher`, `leaderboard`, `units`, `errors`.)
+- [x] Extract a small `<Points>` helper component that renders `{Intl.NumberFormat(locale).format(amount)} pts` so the unit + number formatting live in one place. (`frontend/src/components/Points.tsx` — exports `Points`, `formatPoints`, and `useActiveLocale`.)
+- [x] Extract a small `<StatusBadge>` lookup helper (already a component — just change its labels to `t(...)` calls).
+- [x] Add a Vitest test that snapshots the rendered app per locale and asserts no missing-key warnings. (Per-locale `it.each` walks the union of all shipped keys and asserts each resolves in each locale — catches both "key missing in pt-BR" and "key missing in en".)
+- [x] Plural-rule test for pt-BR's `>1` form at `count: 2`. (`betList.heading_one` / `_other` exist in pt-BR; test asserts resource presence + that `count: 2` resolves via the plural-rule path.)
+- [x] Wrap fallback error strings in `api/client.ts` and `AuthContext` through `t('errors.*')` so the rare case where the server doesn't include a message flows through the active locale. Phase D will replace the dynamic server-supplied strings with code-based mapping.
+- [x] Replace hard-coded `'pt-BR'` `Intl.DateTimeFormat` calls in `EventPicker.tsx` (recent-results time, upcoming-card date/time columns) and `BetList.tsx` (betted-at date/time) with the active locale via `useActiveLocale()`. Phase C will own the kickoff-countdown strings themselves.
+
+### Phase C — kickoff countdown localisation ✅
+
+`frontend/src/kickoff.ts` mixed English literals (`"starting now"`, `"in"`, `"tomorrow"`, `"<1m"`) with `Intl.DateTimeFormat(undefined, ...)` calls. `undefined` here resolves to the browser locale, which is fine but inconsistent with the rest of the app once we have a forced locale.
+
+- [x] Make `kickoffLabel` take an explicit `locale: string` and a `t: (key, opts) => string` parameter. `EventPicker` passes `useActiveLocale()` and `t` from `useTranslation()`.
+- [x] Replace the six hard-coded English phrases with translation keys: `kickoff.startingNow`, `kickoff.inOneMinute`, `kickoff.inMinutes`, `kickoff.inHours`, `kickoff.inHoursMinutes`, `kickoff.tomorrowAt`. pt-BR equivalents use `"em"` / `"amanhã"` naturally.
+- [x] Switch the three `Intl.DateTimeFormat(undefined, ...)` calls to use the active locale explicitly.
+- [x] Force `hour12: false` on `formatHm` so 24-hour time is consistent across both locales — a kickoff app that flips to "06:00 PM" mid-countdown feels off.
+- [x] Keep the `{ text, relative }` shape — the `relative` flag drives the `.relative` CSS class on `.event-kickoff` and shouldn't be lost.
+- [x] Tests: `src/test/kickoff.test.ts` covers all six countdown phrases in both locales, the two absolute phrases (`tomorrow HH:MM` and `<weekday> HH:MM`), and explicit assertions that the active locale drives `Intl.DateTimeFormat` (e.g. en gives "07/01 18:00", pt-BR gives "01/07 18:00"). 17 tests total.
+
+### Phase D — backend error messages (lower priority) 🔲
+
+Errors from the API (`/api/auth/google` failures, validation errors, admin actions) currently render their server-supplied message directly into the UI. With i18n these should be translation keys, not English/Portuguese sentences.
+
+- [ ] Define a stable set of error codes on the backend (`unauthorized`, `invalid_invite_code`, `insufficient_balance`, etc.) and emit them as `{ code, params }` instead of free-text messages.
+- [ ] Frontend maps each code to a `t(...)` string with the supplied params.
+- [ ] Field-level validation errors (e.g. amount must be a positive integer) follow the same pattern: `{ code: "invalid_amount", params: { min: 1, max: 99999 } }`.
+- [ ] Out of scope: `Accept-Language`-driven server message templating. The code-based approach sidesteps it — the backend never produces user-facing text in this round.
+
+### Open questions ✅ (resolved)
+
+All five open questions were resolved during planning. Decisions live in the phase sections above; this block is kept as an audit trail so the reasoning isn't lost.
+
+- [x] **Brand title** — keep "Sobrou Nada Pro Bet" verbatim in every locale. No entry needed in locale files; Phase B skips it.
+- [x] **Language switcher placement** — flag-emoji group (🇧🇷 / 🇺🇸) lives in `.header-right`, replacing the existing `.backend-status` indicator which moves to a footer. Phase A owns the wiring (last bullet under "Phase A — infrastructure").
+- [x] **RTL** — defer indefinitely. No RTL string extraction, no `dir` attribute work, no RTL-specific CSS. Re-evaluate only if we ever add Arabic/Hebrew.
+- [x] **Plural rules** — include one Vitest test asserting pt-BR's `>1` plural form fires at `count: 2` for any interpolated `{count} bets`-style string. Phase B test list owns it.
+- [x] **Locale-aware event-time format** — Phase C owns both `kickoff.ts` and the upcoming-card date columns. Single `Intl.DateTimeFormat` call site per surface, fed from the active locale.
 
 ## 3. SPA polish (remaining) 🔲
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { useTranslation } from 'react-i18next';
 import { fetchBets } from './api/client';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './components/Toast';
@@ -11,7 +12,10 @@ import GoogleLoginButton from './components/GoogleLoginButton';
 import DevLoginButton from './components/DevLoginButton';
 import GroupSwitcher from './components/GroupSwitcher';
 import Leaderboard from './components/Leaderboard';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { UserMenu } from './components/UserMenu';
 import { usePolling } from './usePolling';
+import './i18n';
 import './App.css';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -31,7 +35,8 @@ function setGroupInUrl(groupId: string | null) {
 }
 
 function AppContent() {
-  const { user, groups, loading, loginError, clearLoginError, logout } = useAuth();
+  const { t, i18n } = useTranslation();
+  const { user, groups, loading, loginError, clearLoginError } = useAuth();
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(getGroupFromUrl);
   const [betsRefreshKey, setBetsRefreshKey] = useState(0);
 
@@ -42,7 +47,7 @@ function AppContent() {
     }, [user, selectedGroupId, betsRefreshKey]),
     60_000,
   );
-  const [backendStatus, setBackendStatus] = useState<string>('checking...');
+  const [backendStatus, setBackendStatus] = useState<string>('checking');
   const [tick, setTick] = useState(0);
 
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
@@ -66,32 +71,24 @@ function AppContent() {
       .catch(() => setBackendStatus('offline'));
   }, []);
 
+  const statusLabel = t(
+    `footer.backendStatus.${backendStatus === 'ok' ? 'ok' : backendStatus === 'offline' ? 'offline' : 'checking'}`,
+  );
+
   return (
     <div className="app">
       <header>
-        <h1>🎲 Sobrou Nada Pro Bet</h1>
+        <h1>{t('app.title')}</h1>
         <div className="header-right">
-          <span
-            className={`backend-status ${backendStatus === 'ok' ? 'online' : 'offline'}`}
-          >
-            Backend: {backendStatus}
-          </span>
           {loading ? (
             <span className="auth-loading"><Spinner /></span>
           ) : user ? (
-            <div className="user-info">
-              {user.avatar_url && (
-                <img src={user.avatar_url} alt="" className="avatar" />
-              )}
-              <span className="user-name">{user.name}</span>
-              <button onClick={logout} className="btn-logout">
-                Logout
-              </button>
-            </div>
+            <UserMenu />
           ) : (
             <>
               <GoogleLoginButton />
               {import.meta.env.DEV && <DevLoginButton />}
+              <LanguageSwitcher />
             </>
           )}
         </div>
@@ -136,11 +133,11 @@ function AppContent() {
         ) : user ? (
           <p className="login-prompt">
             {groups.length === 0
-              ? 'Create or join a group to start betting'
-              : 'Select a group above to place bets'}
+              ? t('app.noGroupsPrompt')
+              : t('app.selectGroupPrompt')}
           </p>
         ) : (
-          <p className="login-prompt">Sign in with Google to place bets</p>
+          <p className="login-prompt">{t('app.loginPrompt')}</p>
         )}
         {user && selectedGroup && <BetList bets={bets ?? []} />}
       </main>
@@ -155,20 +152,48 @@ function AppContent() {
           GitHub
         </a>
         <span className="footer-sep">·</span>
-        <span className="footer-text">Apache 2.0</span>
+        <span className="footer-text">{t('footer.license')}</span>
+        <span className="footer-sep">·</span>
+        <span
+          className={`backend-status ${backendStatus === 'ok' ? 'online' : backendStatus === 'offline' ? 'offline' : 'checking'}`}
+          aria-live="polite"
+        >
+          {t('footer.backendStatus.label')} {statusLabel}
+        </span>
+        {/* i18n.language is referenced so unused-variable lint stays quiet on i18n;
+            useful in devtools for confirming the active locale. */}
+        <span data-active-lng={i18n.language} hidden />
       </footer>
     </div>
   );
 }
 
+function GoogleProviderShell({ children }: { children: React.ReactNode }) {
+  // Pass our active locale through to Google so the iframe-rendered sign-in
+  // button matches the UI. Google accepts BCP-47 codes (e.g. `pt-BR`,
+  // `en`); these align with our `SUPPORTED_LANGUAGES` exactly.
+  //
+  // @react-oauth/google's useLoadGsiScript effect captures `locale` at mount
+  // and only re-runs when `nonce` changes — so the GSI script's `?hl=` param
+  // is frozen at first paint. We force a remount of the provider by keying it
+  // on the locale, which re-injects the script with the new `hl`.
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? 'en';
+  return (
+    <GoogleOAuthProvider key={locale} clientId={GOOGLE_CLIENT_ID} locale={locale}>
+      {children}
+    </GoogleOAuthProvider>
+  );
+}
+
 export default function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleProviderShell>
       <AuthProvider>
         <ToastProvider>
           <AppContent />
         </ToastProvider>
       </AuthProvider>
-    </GoogleOAuthProvider>
+    </GoogleProviderShell>
   );
 }

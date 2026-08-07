@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { createGroup, getInviteCode, joinGroup } from '../api/client';
 import { useToast } from './Toast';
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
+  const { t } = useTranslation();
   const { groups, addGroup } = useAuth();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
@@ -46,7 +48,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       setShowCreate(false);
       setShowJoin(false);
     } catch {
-      toast('Failed to create group');
+      toast(t('groupSwitcher.errors.createFailed'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       setShowJoin(false);
       setShowCreate(false);
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Failed to join');
+      toast(err instanceof Error ? err.message : t('groupSwitcher.errors.joinFailed'));
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       const data = (await getInviteCode(selectedGroupId)) as { invite_code: string };
       setGroupInvite(data.invite_code);
     } catch {
-      toast('Failed to get invite code');
+      toast(t('groupSwitcher.errors.inviteFailed'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
           className="group-select"
         >
           <option value="">
-            {groups.length === 0 ? 'No groups' : 'Select group...'}
+            {groups.length === 0 ? t('groupSwitcher.noGroups') : t('groupSwitcher.selectGroup')}
           </option>
           {groups.map((g) => (
             <option key={g.id} value={g.id}>
@@ -106,18 +108,18 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
           onClick={() => { setShowCreate(true); setShowJoin(false); }}
           className="btn-group-action"
         >
-          + Create
+          {t('groupSwitcher.create')}
         </button>
         <button
           onClick={() => { setShowJoin(true); setShowCreate(false); setGroupInvite(null); }}
           className="btn-group-action"
         >
-          + Join
+          {t('groupSwitcher.join')}
         </button>
 
         {selected && selectedGroupId && (
           <button onClick={handleGetInvite} className="btn-invite" disabled={loading}>
-            Invite
+            {t('groupSwitcher.invite')}
           </button>
         )}
       </div>
@@ -125,14 +127,14 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       {showCreate && (
         <form onSubmit={handleCreate} className="inline-form">
           <input
-            placeholder="Group name"
+            placeholder={t('groupSwitcher.groupNamePlaceholder')}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             required
           />
-          <button type="submit" disabled={loading}>Create</button>
+          <button type="submit" disabled={loading}>{t('groupSwitcher.submitCreate')}</button>
           <button type="button" className="btn-cancel" onClick={() => setShowCreate(false)}>
-            Cancel
+            {t('groupSwitcher.cancel')}
           </button>
         </form>
       )}
@@ -140,14 +142,14 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       {showJoin && (
         <form onSubmit={handleJoin} className="inline-form">
           <input
-            placeholder="Invite code"
+            placeholder={t('groupSwitcher.inviteCodePlaceholder')}
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
             required
           />
-          <button type="submit" disabled={loading}>Join</button>
+          <button type="submit" disabled={loading}>{t('groupSwitcher.submitJoin')}</button>
           <button type="button" className="btn-cancel" onClick={() => setShowJoin(false)}>
-            Cancel
+            {t('groupSwitcher.cancel')}
           </button>
         </form>
       )}
@@ -155,11 +157,11 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
       {groupInvite && (
         <div className="invite-code-bar">
           <code>{groupInvite}</code>
-          <button onClick={() => navigator.clipboard.writeText(groupInvite)}>Copy</button>
+          <button onClick={() => navigator.clipboard.writeText(groupInvite)}>{t('groupSwitcher.copy')}</button>
           <button
             className="btn-invite-close"
             onClick={() => setGroupInvite(null)}
-            aria-label="Close"
+            aria-label={t('groupSwitcher.closeAriaLabel')}
           >
             ×
           </button>

@@ -1,0 +1,167 @@
+{
+  "app": {
+    "title": "🎲 Sobrou Nada Pro Bet",
+    "loginPrompt": "Sign in with Google to place bets",
+    "noGroupsPrompt": "Create or join a group to start betting",
+    "selectGroupPrompt": "Select a group above to place bets"
+  },
+  "header": {
+    "languageSwitcher": {
+      "label": "Language",
+      "portuguese": "Portuguese",
+      "en": "English"
+    },
+    "userMenu": {
+      "label": "Account menu",
+      "logout": "Sign out",
+      "language": "Language"
+    }
+  },
+  "footer": {
+    "backendStatus": {
+      "checking": "checking...",
+      "ok": "online",
+      "offline": "offline",
+      "label": "Backend:"
+    },
+    "license": "Apache 2.0"
+  },
+  "betForm": {
+    "heading": "Place a Bet in <name>{{groupName}}</name>",
+    "odds": "Odds: {{odds}}x",
+    "amountPlaceholder": "Amount (pts)",
+    "placeBet": "Place Bet",
+    "placing": "Placing...",
+    "yourPick": "Your pick:",
+    "errors": {
+      "invalidAmount": "Enter a valid amount",
+      "insufficientBalance": "Not enough points",
+      "noOdds": "No odds available for this prediction",
+      "generic": "Error creating bet"
+    }
+  },
+  "betList": {
+    "heading": "All Bets ({{count}})",
+    "empty": "No bets yet. Place your first one!",
+    "columns": {
+      "user": "User",
+      "event": "Event",
+      "pick": "Pick",
+      "amount": "Amount",
+      "odds": "Odds",
+      "status": "Status",
+      "bettedAt": "Betted at"
+    },
+    "payoutTooltip": "Payout: {{payout}} pts",
+        "statuses": {
+          "pending": "Pending",
+          "won": "Won",
+          "lost": "Lost"
+        },
+    "prediction": {
+      "homeWinFallback": "Home win",
+      "awayWinFallback": "Away win",
+      "draw": "Draw",
+      "noPrediction": "—"
+    },
+    "noEvent": "—",
+    "pagination": {
+      "prev": "‹ Prev",
+      "next": "Next ›",
+      "page": "{{current}} / {{total}}"
+    }
+  },
+  "eventPicker": {
+    "heading": "Upcoming matches",
+    "searchPlaceholder": "Search team...",
+    "loading": "Loading matches...",
+    "noEvents": "No upcoming matches right now. Check back later.",
+    "noMatchesForQuery": "No matches found for “{{query}}”.",
+    "vs": "vs",
+    "recentResults": "Recent results ({{count}})",
+    "predictionBar": {
+      "yourPick": "Your pick:",
+      "draw": "Draw"
+    },
+    "closedNotice": {
+      "awaitingResult": "Betting is closed — awaiting result.",
+      "live": "Betting is closed — match is in progress.",
+      "finished": "Betting is closed — match has finished.",
+      "cancelled": "Match was cancelled."
+    },
+    "statusBadge": {
+      "scheduled": "Scheduled",
+      "live": "Live",
+      "finished": "Finished",
+      "cancelled": "Cancelled",
+      "awaitingResult": "Awaiting result",
+      "ariaScheduled": "Status: scheduled",
+      "ariaLive": "Status: live",
+      "ariaFinished": "Status: finished",
+      "ariaCancelled": "Status: cancelled",
+      "ariaAwaitingResult": "Status: awaiting result"
+    },
+    "cardAriaLabel": "{{home}} vs {{away}}, {{status}}",
+    "cardStatus": {
+      "scheduled": "scheduled",
+      "live": "live",
+      "finished": "finished",
+      "cancelled": "cancelled"
+    }
+  },
+  "groupSwitcher": {
+    "noGroups": "No groups",
+    "selectGroup": "Select group...",
+    "create": "+ Create",
+    "join": "+ Join",
+    "invite": "Invite",
+    "groupNamePlaceholder": "Group name",
+    "inviteCodePlaceholder": "Invite code",
+    "submitCreate": "Create",
+    "submitJoin": "Join",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "closeAriaLabel": "Close",
+    "errors": {
+      "createFailed": "Failed to create group",
+      "joinFailed": "Failed to join",
+      "inviteFailed": "Failed to get invite code"
+    }
+  },
+  "leaderboard": {
+    "heading": "Leaderboard",
+    "loading": "Loading leaderboard...",
+    "columns": {
+      "rank": "#",
+      "player": "Player",
+      "balance": "Balance",
+      "atRisk": "At risk"
+    },
+    "atRiskEmpty": "—"
+  },
+  "kickoff": {
+    "startingNow": "starting now",
+    "inOneMinute": "in <1m",
+    "inMinutes": "in {{count}}m",
+    "inHours": "in {{count}}h",
+    "inHoursMinutes": "in {{hours}}h {{minutes}}m",
+    "tomorrowAt": "tomorrow {{time}}"
+  },
+  "units": {
+    "points": "pts",
+    "pointsAtRisk": "-{{amount}} pts"
+  },
+  "errors": {
+    "googleLogin": "Google login failed",
+    "devLogin": "Dev login failed",
+    "fetchUser": "Failed to fetch user",
+    "fetchBets": "Failed to fetch bets",
+    "createBet": "Failed to create bet",
+    "createGroup": "Failed to create group",
+    "joinGroup": "Failed to join group",
+    "getInvite": "Failed to get invite",
+    "fetchLeaderboard": "Failed to fetch leaderboard",
+    "fetchEvents": "Failed to fetch events",
+    "devLoginAlert": "Dev login failed — is the backend running?"
+  }
+}
