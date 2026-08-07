@@ -100,8 +100,8 @@ export default function BetList({ bets }: { bets: Bet[] }) {
                   t('betList.prediction.noPrediction')
                 )}
               </td>
-              <td>{formatPoints(bet.amount, locale)}</td>
-              <td title={t('betList.payoutTooltip', { payout: (bet.amount * bet.odds).toFixed(0) })}>
+              <td className="amount-cell">{formatPoints(bet.amount, locale)}</td>
+              <td className="odds-cell" title={t('betList.payoutTooltip', { payout: (bet.amount * bet.odds).toFixed(0) })}>
                 {bet.odds}x
               </td>
               <td>

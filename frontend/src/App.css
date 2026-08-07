@@ -1261,6 +1261,17 @@ header h1 {
   white-space: nowrap;
 }
 
+/* Numeric columns in the All Bets table. nowrap prevents "200 pts" from
+   wrapping to two lines when neighbouring columns (team names, event)
+   hog the available width. Right-aligned because they read naturally
+   as numeric data. */
+.amount-cell,
+.odds-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .leaderboard h2 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
