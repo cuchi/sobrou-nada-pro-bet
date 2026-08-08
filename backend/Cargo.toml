@@ -17,7 +17,7 @@ chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
 sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "migrate"] }
 dotenvy = "0.15"
-reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls", "multipart"] }
 jsonwebtoken = { version = "11", features = ["aws_lc_rs"] }
 rand = "0.10"
 

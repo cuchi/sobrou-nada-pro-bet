@@ -27,11 +27,32 @@ export interface CreateBetRequest {
   odds: number;
 }
 
+export type DevResolveOutcome = 'home_win' | 'draw' | 'away_win';
+
+export interface DevResolveBetRequest {
+  bet_id: string;
+  outcome: DevResolveOutcome;
+}
+
+export interface DevResolveBetResponse {
+  bet_id: string;
+  outcome: DevResolveOutcome;
+  score: string;
+  resolved: number;
+}
+
 export interface PublicUser {
   id: string;
   name: string;
   email: string;
   avatar_url: string | null;
+  email_notifications: boolean;
+  locale: string;
+}
+
+export interface PatchMeRequest {
+  email_notifications?: boolean;
+  locale?: string;
 }
 
 export interface AuthResponse {

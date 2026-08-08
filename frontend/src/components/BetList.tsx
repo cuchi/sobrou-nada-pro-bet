@@ -3,22 +3,37 @@ import { useTranslation } from 'react-i18next';
 import { formatPoints, useActiveLocale } from './Points';
 import EmptyState from './EmptyState';
 import { ErrorBoundary } from './ErrorBoundary';
-import type { Bet } from '../types';
+import { devResolveBet } from '../api/client';
+import type { Bet, DevResolveOutcome } from '../types';
 
 const PAGE_SIZE = 10;
 
-export default function BetList({ bets }: { bets: Bet[] }) {
+export default function BetList({
+  bets,
+  onBetResolved,
+}: {
+  bets: Bet[];
+  onBetResolved?: () => void;
+}) {
   return (
     <ErrorBoundary scope="BetList">
-      <BetListInner bets={bets} />
+      <BetListInner bets={bets} onBetResolved={onBetResolved} />
     </ErrorBoundary>
   );
 }
 
-function BetListInner({ bets }: { bets: Bet[] }) {
+function BetListInner({
+  bets,
+  onBetResolved,
+}: {
+  bets: Bet[];
+  onBetResolved?: () => void;
+}) {
   const { t } = useTranslation();
   const locale = useActiveLocale();
   const [page, setPage] = useState(0);
+  const [resolving, setResolving] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
 
   if (bets.length === 0) {
     return (
@@ -67,6 +82,20 @@ function BetListInner({ bets }: { bets: Bet[] }) {
     return { date: dateFmt.format(d), time: timeFmt.format(d) };
   }
 
+  async function resolveBet(bet: Bet, outcome: DevResolveOutcome) {
+    if (resolving) return;
+    setResolving(bet.id);
+    setResolveError(null);
+    try {
+      await devResolveBet({ bet_id: bet.id, outcome });
+      onBetResolved?.();
+    } catch (e) {
+      setResolveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setResolving(null);
+    }
+  }
+
   return (
     <div className="bet-list">
       <h2>{t('betList.heading', { count: bets.length })}</h2>
@@ -80,6 +109,7 @@ function BetListInner({ bets }: { bets: Bet[] }) {
             <th>{t('betList.columns.odds')}</th>
             <th>{t('betList.columns.status')}</th>
             <th>{t('betList.columns.bettedAt')}</th>
+            {import.meta.env.DEV && <th>{t('betList.columns.resolve')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -129,10 +159,60 @@ function BetListInner({ bets }: { bets: Bet[] }) {
                 <span className="betted-at-date">{bettedAt(bet.created_at).date}</span>
                 <span className="betted-at-time">{bettedAt(bet.created_at).time}</span>
               </td>
+              {import.meta.env.DEV && (
+                <td className="bet-resolve-cell">
+                  {bet.status === 'pending' ? (
+                    <div className="bet-resolve-buttons">
+                      <button
+                        type="button"
+                        className="bet-resolve-btn"
+                        title={bet.home_team || t('betList.resolveOutcome.home')}
+                        disabled={resolving === bet.id}
+                        onClick={() => resolveBet(bet, 'home_win')}
+                      >
+                        {bet.home_team || t('betList.resolveOutcome.home')}
+                      </button>
+                      <button
+                        type="button"
+                        className="bet-resolve-btn"
+                        title={t('betList.resolveOutcome.draw')}
+                        disabled={resolving === bet.id}
+                        onClick={() => resolveBet(bet, 'draw')}
+                      >
+                        X
+                      </button>
+                      <button
+                        type="button"
+                        className="bet-resolve-btn"
+                        title={bet.away_team || t('betList.resolveOutcome.away')}
+                        disabled={resolving === bet.id}
+                        onClick={() => resolveBet(bet, 'away_win')}
+                      >
+                        {bet.away_team || t('betList.resolveOutcome.away')}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="bet-resolve-done">—</span>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+
+      {resolveError && (
+        <div className="bet-resolve-error" role="alert">
+          {resolveError}
+          <button
+            type="button"
+            className="banner-dismiss"
+            onClick={() => setResolveError(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {pageCount > 1 && (
         <div className="pagination">

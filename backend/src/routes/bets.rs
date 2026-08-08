@@ -10,8 +10,10 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
+use crate::email::client::EmailClient;
 use crate::error::{AppError, ErrorCode};
 use crate::models::{Bet, BetWithUser, CreateBetRequest, GroupMember};
+use crate::routes::admin::resolve_event;
 
 // ── Bets ──────────────────────────────────────────────
 
@@ -142,4 +144,97 @@ pub async fn create_bet(
     .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok((StatusCode::CREATED, Json(json!(bet))))
+}
+
+// ── Dev only ───────────────────────────────────────────
+
+/// Body for `POST /api/dev/resolve-bet`. The caller picks an outcome;
+/// the server synthesizes a score and runs the same resolve + email
+/// pipeline that `/admin/bets/resolve` would for the parent event.
+#[derive(Debug, Deserialize)]
+pub struct DevResolveBetRequest {
+    pub bet_id: Uuid,
+    pub outcome: String,
+}
+
+/// POST /api/dev/resolve-bet
+///
+/// Dev-only: returns 404 when `ENVIRONMENT == "production"` so the
+/// endpoint is invisible to prod traffic (matches the `dev_login`
+/// pattern). Synthesizes a final score for the outcome:
+/// - `home_win` → home 1, away 0
+/// - `draw`     → home 1, away 1
+/// - `away_win` → home 0, away 1
+///
+/// Errors:
+/// - 404 if the bet doesn't exist
+/// - 409 if the bet is already resolved/cancelled
+/// - 400 if the outcome is invalid
+pub async fn dev_resolve_bet(
+    AuthUser { .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Json(body): Json<DevResolveBetRequest>,
+) -> Result<Json<Value>, AppError> {
+    if crate::env::ENV.is_prod() {
+        return Err(AppError::legacy_not_found("Not found"));
+    }
+
+    let (home_score, away_score) = match body.outcome.as_str() {
+        "home_win" => (1, 0),
+        "draw" => (1, 1),
+        "away_win" => (0, 1),
+        other => {
+            return Err(AppError::legacy_bad_request(format!(
+                "Invalid outcome: {other}. Expected home_win | draw | away_win."
+            )));
+        }
+    };
+
+    // Load the bet and its event in one query.
+    let row: Option<(String, String, String, Option<Uuid>, String)> = sqlx::query_as(
+        r#"SELECT b.status::text, e.external_id, e.home_team, b.event_id, e.away_team
+           FROM bets b
+           JOIN events e ON e.id = b.event_id
+           WHERE b.id = $1"#,
+    )
+    .bind(body.bet_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let (status, external_id, home_team, _event_id, away_team) =
+        row.ok_or_else(|| AppError::legacy_not_found("Bet not found"))?;
+
+    if status != "pending" {
+        return Err(AppError::legacy_bad_request(format!(
+            "Bet is already {status}"
+        )));
+    }
+
+    // Run the shared resolve pipeline. resolve_event updates the event
+    // row's scores and flips every pending bet on it — same as the prod
+    // path, just driven by synthetic scores.
+    let client = EmailClient::from_env();
+    let synthetic = crate::routes::admin::FinishedMatch {
+        external_id: external_id.clone(),
+        home_team,
+        away_team,
+        home_score,
+        away_score,
+    };
+    let (resolved, _updated_scores) = resolve_event(&pool, &client, &synthetic).await;
+
+    tracing::info!(
+        bet_id = %body.bet_id,
+        outcome = %body.outcome,
+        resolved,
+        "Dev-resolved bet"
+    );
+
+    Ok(Json(json!({
+        "bet_id": body.bet_id,
+        "outcome": body.outcome,
+        "score": format!("{home_score}–{away_score}"),
+        "resolved": resolved,
+    })))
 }

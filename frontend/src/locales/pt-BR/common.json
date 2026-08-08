@@ -15,7 +15,9 @@
     "userMenu": {
       "label": "Menu da conta",
       "logout": "Sair",
-      "language": "Idioma"
+      "language": "Idioma",
+      "notifications": "Notificações",
+      "emailNotifications": "Me avise por email quando uma aposta for resolvida ou novas partidas chegarem"
     }
   },
   "footer": {
@@ -53,7 +55,8 @@
       "amount": "Valor",
       "odds": "Odds",
       "status": "Status",
-      "bettedAt": "Apostado em"
+      "bettedAt": "Apostado em",
+      "resolve": "Resolver"
     },
     "payoutTooltip": "Retorno: {{payout}} pts",
         "statuses": {
@@ -72,6 +75,11 @@
       "prev": "‹ Anterior",
       "next": "Próximo ›",
       "page": "{{current}} / {{total}}"
+    },
+    "resolveOutcome": {
+      "home": "Mandante",
+      "draw": "Empate",
+      "away": "Visitante"
     }
   },
   "eventPicker": {

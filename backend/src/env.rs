@@ -9,6 +9,9 @@ pub struct Env {
     pub google_client_id: Result<String, AppError>,
     pub admin_token: String,
     pub odds_api_key: Result<String, AppError>,
+    pub mailgun_api_key: Option<String>,
+    pub mailgun_domain: Option<String>,
+    pub mailgun_from: Option<String>,
     pub environment: String,
     pub cors_allowed_origins: Option<String>,
     pub rust_log: Option<String>,
@@ -46,6 +49,17 @@ impl Env {
             "Get one from the-odds-api.com (free tier: 500 req/month).",
         );
 
+        // Mailgun: optional for dev. When `MAILGUN_API_KEY` or
+        // `MAILGUN_DOMAIN` is unset, `email::send_*` log the would-be
+        // send and return Ok(()) so dev + tests don't need them.
+        let mailgun_api_key = std::env::var("MAILGUN_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let mailgun_domain = std::env::var("MAILGUN_DOMAIN")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let mailgun_from = std::env::var("MAILGUN_FROM").ok().filter(|s| !s.is_empty());
+
         let cors_allowed_origins = std::env::var("CORS_ALLOWED_ORIGINS")
             .ok()
             .filter(|s| !s.is_empty());
@@ -63,6 +77,9 @@ impl Env {
             google_client_id,
             admin_token,
             odds_api_key,
+            mailgun_api_key,
+            mailgun_domain,
+            mailgun_from,
             environment,
             cors_allowed_origins,
             rust_log,

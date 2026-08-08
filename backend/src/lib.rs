@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod db;
+pub mod email;
 pub mod env;
 pub mod error;
 pub mod models;
@@ -19,17 +20,18 @@ mod app {
     };
 
     use crate::routes::{
-        admin, create_bet, create_group, dev_login, get_group, get_invite, google_login,
-        health_check, join_group, leaderboard, list_bets, list_events, list_my_groups, me,
-        regenerate_invite,
+        admin, create_bet, create_group, dev_login, dev_resolve_bet, get_group, get_invite,
+        google_login, health_check, join_group, leaderboard, list_bets, list_events,
+        list_my_groups, me, patch_me, regenerate_invite,
     };
 
     pub async fn build_app(pool: sqlx::PgPool) -> Router {
         Router::new()
             .route("/health", get(health_check))
             .route("/api/auth/google", post(google_login))
-            .route("/api/auth/me", get(me))
+            .route("/api/auth/me", get(me).patch(patch_me))
             .route("/api/dev/login", post(dev_login))
+            .route("/api/dev/resolve-bet", post(dev_resolve_bet))
             .route("/api/groups", get(list_my_groups).post(create_group))
             .route("/api/groups/{id}", get(get_group))
             .route(

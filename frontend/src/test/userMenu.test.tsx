@@ -7,11 +7,14 @@ import { AuthProvider } from '../context/AuthContext';
 
 // Provide a logged-in user via mocked localStorage + fetch.
 // fetchMe() is called by AuthProvider on mount; we stub it to return a user.
-function setupLoggedInUser() {
+function setupLoggedInUser(overrides: Partial<{
+  email_notifications: boolean;
+  locale: string;
+}> = {}) {
   localStorage.setItem('token', 'fake-token-for-test');
-  globalThis.fetch = (async (url: string | URL) => {
+  globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
     const u = String(url);
-    if (u.endsWith('/api/auth/me')) {
+    if (u.endsWith('/api/auth/me') && init?.method !== 'PATCH') {
       return new Response(
         JSON.stringify({
           user: {
@@ -19,13 +22,28 @@ function setupLoggedInUser() {
             email: 'kaka@example.com',
             name: 'Kaká Henrique da Silva Santos',
             avatar_url: null,
+            email_notifications: overrides.email_notifications ?? true,
+            locale: overrides.locale ?? 'en',
           },
           groups: [],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       );
     }
-    return new Response('{}', { status: 200 });
+    // Default: PATCH returns the updated user.
+    return new Response(
+      JSON.stringify({
+        user: {
+          id: 'u1',
+          email: 'kaka@example.com',
+          name: 'Kaká Henrique da Silva Santos',
+          avatar_url: null,
+          email_notifications: overrides.email_notifications ?? true,
+          locale: overrides.locale ?? 'en',
+        },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
   }) as typeof fetch;
 }
 
@@ -167,5 +185,201 @@ describe('UserMenu', () => {
     const usOption = options.find((o) => o.querySelector('img')?.getAttribute('src') === '/flags/us.svg')!;
     fireEvent.click(usOption);
     expect(i18n.resolvedLanguage).toBe('en');
+  });
+
+  it('syncing the locale via the picker fires PATCH /api/me', async () => {
+    const patches: Array<{ body: unknown }> = [];
+    localStorage.setItem('token', 'fake-token-for-test');
+    globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'PATCH') {
+        patches.push({ body: JSON.parse(String(init?.body ?? '{}')) });
+        return new Response(
+          JSON.stringify({
+            user: {
+              id: 'u1',
+              email: 'kaka@example.com',
+              name: 'Kaká',
+              avatar_url: null,
+              email_notifications: true,
+              locale: 'en',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          user: {
+            id: 'u1',
+            email: 'kaka@example.com',
+            name: 'Kaká Henrique da Silva Santos',
+            avatar_url: null,
+            email_notifications: true,
+            locale: 'pt-BR',
+          },
+          groups: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as typeof fetch;
+
+    await i18n.changeLanguage(DEFAULT_LANGUAGE);
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <AuthProvider>
+          <UserMenu />
+        </AuthProvider>
+      </I18nextProvider>,
+    );
+    await new Promise((r) => setTimeout(r, 20));
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.menu-trigger')!);
+    const options = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="option"]'));
+    const usOption = options.find((o) => o.querySelector('img')?.getAttribute('src') === '/flags/us.svg')!;
+    fireEvent.click(usOption);
+
+    await waitFor(
+      () => {
+        expect(patches.length).toBe(1);
+      },
+      { timeout: 2000 },
+    );
+    expect(patches[0].body).toEqual({ locale: 'en' });
+  });
+
+  it('renders an email-notifications toggle reflecting the user flag', async () => {
+    setupLoggedInUser({ email_notifications: true });
+    await i18n.changeLanguage(DEFAULT_LANGUAGE);
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <AuthProvider>
+          <UserMenu />
+        </AuthProvider>
+      </I18nextProvider>,
+    );
+    await new Promise((r) => setTimeout(r, 20));
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.menu-trigger')!);
+    const toggle = container.querySelector<HTMLButtonElement>('[role="menuitemcheckbox"]')!;
+    expect(toggle).not.toBeNull();
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(container.querySelector('.user-menu-switch.on')).not.toBeNull();
+  });
+
+  it('clicking the email-notifications toggle fires PATCH /api/me', async () => {
+    const patches: Array<{ url: string; method: string; body: unknown }> = [];
+    localStorage.setItem('token', 'fake-token-for-test');
+    globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      const method = init?.method ?? 'GET';
+      if (method === 'PATCH') {
+        patches.push({ url: u, method, body: JSON.parse(String(init?.body ?? '{}')) });
+        return new Response(
+          JSON.stringify({
+            user: {
+              id: 'u1',
+              email: 'kaka@example.com',
+              name: 'Kaká',
+              avatar_url: null,
+              email_notifications: false,
+              locale: 'en',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          user: {
+            id: 'u1',
+            email: 'kaka@example.com',
+            name: 'Kaká Henrique da Silva Santos',
+            avatar_url: null,
+            email_notifications: true,
+            locale: 'en',
+          },
+          groups: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as typeof fetch;
+
+    await i18n.changeLanguage(DEFAULT_LANGUAGE);
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <AuthProvider>
+          <UserMenu />
+        </AuthProvider>
+      </I18nextProvider>,
+    );
+    await new Promise((r) => setTimeout(r, 20));
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.menu-trigger')!);
+    const toggle = container.querySelector<HTMLButtonElement>('[role="menuitemcheckbox"]')!;
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(patches.length).toBe(1);
+    });
+    expect(patches[0].url).toMatch(/\/api\/auth\/me$/);
+    expect(patches[0].method).toBe('PATCH');
+    expect(patches[0].body).toEqual({ email_notifications: false });
+
+    await waitFor(() => {
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
+    });
+  });
+
+  it('rolls back the optimistic toggle when PATCH /api/me fails', async () => {
+    localStorage.setItem('token', 'fake-token-for-test');
+    globalThis.fetch = (async (_url: string | URL, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'PATCH') {
+        return new Response(
+          JSON.stringify({ code: 'internal', params: null, message: 'oops' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          user: {
+            id: 'u1',
+            email: 'kaka@example.com',
+            name: 'Kaká Henrique da Silva Santos',
+            avatar_url: null,
+            email_notifications: true,
+            locale: 'en',
+          },
+          groups: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as typeof fetch;
+
+    await i18n.changeLanguage(DEFAULT_LANGUAGE);
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <AuthProvider>
+          <UserMenu />
+        </AuthProvider>
+      </I18nextProvider>,
+    );
+    await new Promise((r) => setTimeout(r, 20));
+
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.menu-trigger')!);
+    const toggle = container.querySelector<HTMLButtonElement>('[role="menuitemcheckbox"]')!;
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.click(toggle);
+
+    // The optimistic update flips to false immediately, then the failure
+    // rolls it back to true.
+    await waitFor(() => {
+      expect(toggle.getAttribute('aria-checked')).toBe('true');
+    });
+
+    // An inline error message appears.
+    expect(container.querySelector('.user-menu-toggle-error')).not.toBeNull();
   });
 });

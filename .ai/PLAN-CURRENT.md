@@ -189,14 +189,14 @@ All five open questions were resolved during planning. Decisions live in the pha
 
 Transactional emails, gated on user preference. Two trigger types initially.
 
-- [ ] Pick a provider — SendGrid (env: `SENDGRID_API_KEY`)
-- [ ] Migration — `users.email_notifications BOOLEAN NOT NULL DEFAULT true`
-- [ ] Per-user preference — surface a toggle in account/settings (default on)
-- [ ] **Bet resolved** — on win/loss/void, send a short summary (match, pick, outcome, payout)
-- [ ] **New events for upcoming matches** — notify opted-in users when fresh events land in the events table (weekly digest is fine; avoid spam)
-- [ ] Respect `email_notifications = false` everywhere
-- [ ] All sends fully logged (`tracing::info!` per send, success/failure)
-- [ ] Email triggers are idempotent — re-running resolve or sync must not double-send (track `notified_at` or use the resolved timestamp as the dedupe key)
+- [x] Pick a provider — Mailgun (env: `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM`)
+- [x] Migration — `users.email_notifications BOOLEAN NOT NULL DEFAULT true`
+- [x] Per-user preference — surface a toggle in account/settings (default on)
+- [x] **Bet resolved** — on win/loss/void, send a short summary (match, pick, outcome, payout)
+- [x] **New events for upcoming matches** — notify opted-in users when fresh events land in the events table (weekly digest is fine; avoid spam)
+- [x] Respect `email_notifications = false` everywhere
+- [x] All sends fully logged (`tracing::info!` per send, success/failure)
+- [x] Email triggers are idempotent — re-running resolve or sync must not double-send (track `notified_at` or use the resolved timestamp as the dedupe key)
 
 Triggering today is manual (admin hits `/admin/bets/resolve`); emails should fire from the same code path so they "just work" once a trigger exists.
 

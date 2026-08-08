@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { translateApiError } from '../api/client';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 /**
@@ -11,8 +12,9 @@ import { LanguageSwitcher } from './LanguageSwitcher';
  */
 export function UserMenu() {
   const { t } = useTranslation();
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, updateUser } = useAuth();
   const [open, setOpen] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,6 +88,40 @@ export function UserMenu() {
             <span className="user-menu-name" title={user.name}>{user.name}</span>
             <span className="user-menu-email">{user.email}</span>
           </div>
+
+          <div className="user-menu-divider" role="separator" />
+
+          <div className="user-menu-section-label">{t('header.userMenu.notifications')}</div>
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={user.email_notifications}
+            className="user-menu-toggle"
+            onClick={async () => {
+              const next = !user.email_notifications;
+              setToggleError(null);
+              try {
+                await updateUser({ email_notifications: next });
+              } catch (err) {
+                setToggleError(translateApiError(err, t, 'errors.internal'));
+              }
+            }}
+          >
+            <span className="user-menu-toggle-label">
+              {t('header.userMenu.emailNotifications')}
+            </span>
+            <span
+              className={`user-menu-switch ${user.email_notifications ? 'on' : 'off'}`}
+              aria-hidden="true"
+            >
+              <span className="user-menu-switch-knob" />
+            </span>
+          </button>
+          {toggleError && (
+            <div className="user-menu-toggle-error" role="alert">
+              {toggleError}
+            </div>
+          )}
 
           <div className="user-menu-divider" role="separator" />
 

@@ -63,6 +63,19 @@ pub async fn app() -> (axum::Router, PgPool) {
             std::env::set_var("ADMIN_TOKEN", "test-admin-token");
         }
     }
+    // Force the email client into the no-op path so tests don't hit the
+    // real Mailgun API. The .env may contain live credentials. ENV is a
+    // LazyLock so we have to clear these *before* the first
+    // `EmailClient::from_env()` call. dotenvy::dotenv() doesn't override
+    // existing vars, so removing here after the dotenv() call sticks.
+    // Force the email client into the no-op path so tests don't hit the
+    // real Mailgun API. Set the vars to empty strings *after* dotenv()
+    // so Env::load()'s is_empty() filter strips them. dotenvy won't
+    // override existing env vars on subsequent calls, so this sticks.
+    unsafe {
+        std::env::set_var("MAILGUN_API_KEY", "");
+        std::env::set_var("MAILGUN_DOMAIN", "");
+    }
     let pool = test_db().await;
     let router = sobrou_nada_pro_bet::build_app(pool.clone()).await;
     (router, pool)

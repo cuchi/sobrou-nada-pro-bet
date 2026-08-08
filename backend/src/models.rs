@@ -13,6 +13,9 @@ pub struct User {
     pub google_id: Option<String>,
     pub avatar_url: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub email_notifications: bool,
+    pub locale: String,
+    pub new_events_notified_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +24,8 @@ pub struct PublicUser {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub email_notifications: bool,
+    pub locale: String,
 }
 
 impl From<User> for PublicUser {
@@ -32,6 +37,8 @@ impl From<User> for PublicUser {
                 .unwrap_or_else(|| u.email.clone().unwrap_or_default()),
             email: u.email.unwrap_or_default(),
             avatar_url: u.avatar_url,
+            email_notifications: u.email_notifications,
+            locale: u.locale,
         }
     }
 }

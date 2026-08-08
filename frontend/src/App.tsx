@@ -155,7 +155,15 @@ function AppContent() {
         ) : (
           <p className="login-prompt">{t('app.loginPrompt')}</p>
         )}
-        {user && selectedGroup && <BetList bets={bets ?? []} />}
+        {user && selectedGroup && (
+          <BetList
+            bets={bets ?? []}
+            onBetResolved={() => {
+              setBetsRefreshKey(k => k + 1);
+              setTick(t => t + 1);
+            }}
+          />
+        )}
       </main>
 
       <footer className="app-footer">

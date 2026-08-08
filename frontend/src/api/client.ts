@@ -1,4 +1,10 @@
 import i18n from '../i18n';
+import type {
+  DevResolveBetRequest,
+  DevResolveBetResponse,
+  PatchMeRequest,
+  PublicUser,
+} from '../types';
 
 const BASE = '/api';
 
@@ -110,6 +116,31 @@ export async function fetchMe(): Promise<unknown> {
   return res.json();
 }
 
+/// PATCH /api/me — update mutable per-user fields. Returns the
+/// updated user so the caller can sync local state without a second
+/// GET. Throws `ApiError` on non-2xx.
+export async function patchMe(body: PatchMeRequest): Promise<PublicUser> {
+  const res = await fetch(`${BASE}/auth/me`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = data as {
+      code?: string;
+      params?: Record<string, unknown> | null;
+      message?: string;
+    };
+    throw new ApiError(
+      err.code ?? 'internal',
+      err.params ?? null,
+      err.message ?? i18n.t('errors.internal'),
+    );
+  }
+  return (data as { user: PublicUser }).user;
+}
+
 // ── Bets ──────────────────────────────────────────────
 
 export async function fetchBets(groupId: string): Promise<unknown> {
@@ -144,6 +175,33 @@ export async function createBet(req: {
     );
   }
   return data;
+}
+
+/// POST /api/dev/resolve-bet — dev-only one-click resolve. Returns
+/// the synthetic score + count of bets touched. Throws `ApiError` on
+/// non-2xx. In production the endpoint returns 404 (env-gated).
+export async function devResolveBet(
+  body: DevResolveBetRequest,
+): Promise<DevResolveBetResponse> {
+  const res = await fetch(`${BASE}/dev/resolve-bet`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = data as {
+      code?: string;
+      params?: Record<string, unknown> | null;
+      message?: string;
+    };
+    throw new ApiError(
+      err.code ?? 'internal',
+      err.params ?? null,
+      err.message ?? i18n.t('errors.internal'),
+    );
+  }
+  return data as DevResolveBetResponse;
 }
 
 // ── Groups ────────────────────────────────────────────

@@ -1,6 +1,7 @@
 use axum::{Json, extract::State};
 use chrono::Utc;
 use jsonwebtoken::{EncodingKey, Header, encode};
+use serde::Deserialize;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -156,10 +157,72 @@ pub async fn me(
     })))
 }
 
-// ── Dev only ──────────────────────────────────────────
+/// PATCH /api/me — update mutable per-user fields.
+///
+/// Body: `{ "email_notifications"?: bool, "locale"?: string }`. At
+/// least one field must be present. Returns the updated `PublicUser`
+/// so the frontend can keep its local state in sync without a second
+/// `GET /api/auth/me`.
+#[derive(Debug, Deserialize)]
+pub struct PatchMeRequest {
+    #[serde(default)]
+    pub email_notifications: Option<bool>,
+    #[serde(default)]
+    pub locale: Option<String>,
+}
 
-/// POST /api/dev/login — creates a random test user and returns a JWT.
-/// Only works when ENVIRONMENT is not "production".
+/// PATCH /api/me
+pub async fn patch_me(
+    AuthUser { id, .. }: AuthUser,
+    State(pool): State<PgPool>,
+    Json(body): Json<PatchMeRequest>,
+) -> Result<Json<Value>, AppError> {
+    if body.email_notifications.is_none() && body.locale.is_none() {
+        return Err(AppError::BadRequest(
+            ErrorCode::Internal,
+            Some("At least one of email_notifications or locale must be set".into()),
+        ));
+    }
+
+    if let Some(locale) = &body.locale {
+        if locale.is_empty() || locale.len() > 10 {
+            return Err(AppError::BadRequest(
+                ErrorCode::Internal,
+                Some("locale must be 1..=10 chars".into()),
+            ));
+        }
+    }
+
+    // Coalesce the two optional fields into one UPDATE so we only hit
+    // the DB once. SQLx doesn't have a native COALESCE-set pattern,
+    // so we hand-roll it with a CASE expression.
+    let result = sqlx::query(
+        r#"UPDATE users SET
+               email_notifications = COALESCE($2, email_notifications),
+               locale              = COALESCE($3, locale)
+           WHERE id = $1"#,
+    )
+    .bind(id)
+    .bind(body.email_notifications)
+    .bind(body.locale.as_deref())
+    .execute(&pool)
+    .await
+    .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::legacy_not_found("User not found"));
+    }
+
+    let user: User = sqlx::query_as("SELECT * FROM users WHERE id = $1")
+        .bind(id)
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| AppError::Internal(format!("Database error: {e}")))?;
+
+    Ok(Json(json!({ "user": PublicUser::from(user) })))
+}
+
+// ── Dev only ──────────────────────────────────────────
 pub async fn dev_login(State(pool): State<PgPool>) -> Result<Json<Value>, AppError> {
     if crate::env::ENV.is_prod() {
         return Err(AppError::legacy_not_found("Not found"));

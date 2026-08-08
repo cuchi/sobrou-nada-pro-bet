@@ -15,7 +15,9 @@
     "userMenu": {
       "label": "Account menu",
       "logout": "Sign out",
-      "language": "Language"
+      "language": "Language",
+      "notifications": "Notifications",
+      "emailNotifications": "Email me when a bet resolves or new matches drop"
     }
   },
   "footer": {
@@ -52,7 +54,8 @@
       "amount": "Amount",
       "odds": "Odds",
       "status": "Status",
-      "bettedAt": "Betted at"
+      "bettedAt": "Betted at",
+      "resolve": "Resolve"
     },
     "payoutTooltip": "Payout: {{payout}} pts",
         "statuses": {
@@ -71,6 +74,11 @@
       "prev": "‹ Prev",
       "next": "Next ›",
       "page": "{{current}} / {{total}}"
+    },
+    "resolveOutcome": {
+      "home": "Home",
+      "draw": "Draw",
+      "away": "Away"
     }
   },
   "eventPicker": {

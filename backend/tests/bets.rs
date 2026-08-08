@@ -294,3 +294,135 @@ async fn cannot_bet_outside_group() {
     // Phase D contract: `not_group_member` maps to 403 Forbidden.
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
+
+// ── Dev-only single-bet resolver ─────────────────────
+
+/// Place a pending bet as `jwt` and return its id as a `String`.
+async fn place_pending_bet(
+    router: &axum::Router,
+    jwt: &str,
+    group_id: &str,
+    event_id: &str,
+) -> String {
+    let req = bet_request(jwt, group_id, event_id, 100);
+    let resp = router.clone().oneshot(req).await.unwrap();
+    let status = resp.status();
+    let body_bytes = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    let body: Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert!(status.is_success(), "place_pending_bet failed: {body}");
+    body["id"].as_str().unwrap().to_string()
+}
+
+fn dev_resolve_request(jwt: &str, bet_id: &str, outcome: &str) -> Request<Body> {
+    Request::post("/api/dev/resolve-bet")
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {jwt}"))
+        .body(Body::from(
+            serde_json::to_string(&json!({
+                "bet_id": bet_id,
+                "outcome": outcome
+            }))
+            .unwrap(),
+        ))
+        .unwrap()
+}
+
+#[tokio::test]
+async fn dev_resolve_bet_marks_winner_and_credits_balance() {
+    let (router, pool) = common::app().await;
+
+    let (_, login) = common::post_json(&router, "/api/dev/login", json!({})).await;
+    let jwt = login["token"].as_str().unwrap();
+
+    let group_id = create_group(&router, jwt, "Dev Resolve Group").await;
+    let event_id = seed_event(&pool).await;
+    let bet_id = place_pending_bet(&router, jwt, &group_id, &event_id).await;
+
+    // Resolve as home_win — matches the prediction the helper placed.
+    let req = dev_resolve_request(jwt, &bet_id, "home_win");
+    let resp = router.clone().oneshot(req).await.unwrap();
+    let status = resp.status();
+    let body_bytes = axum::body::to_bytes(resp.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    let body: Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert!(
+        status.is_success(),
+        "dev_resolve_bet failed: {status} {body}"
+    );
+    assert_eq!(body["outcome"], "home_win");
+    assert_eq!(body["resolved"], 1);
+
+    // Bet status should now be 'won'.
+    let bet_status: String =
+        sqlx::query_scalar("SELECT status::text FROM bets WHERE id = $1::uuid")
+            .bind(&bet_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(bet_status, "won");
+
+    // Event scores should be 1-0 (home_win synthetic).
+    let scores: (i32, i32) =
+        sqlx::query_as("SELECT home_score, away_score FROM events WHERE id = $1::uuid")
+            .bind(&event_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(scores, (1, 0));
+
+    // Balance went up by amount * odds (100 * 1.5 = 150) over the
+    // original 1000 starting balance minus the 100 already deducted.
+    let balance_after: f64 = sqlx::query_scalar(
+        "SELECT gm.balance FROM group_members gm WHERE gm.group_id = $1::uuid LIMIT 1",
+    )
+    .bind(&group_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    // 1000 start − 100 bet + 150 payout = 1050
+    assert!(
+        (balance_after - 1050.0).abs() < 0.001,
+        "balance_after={balance_after}, expected=1050"
+    );
+}
+
+#[tokio::test]
+async fn dev_resolve_bet_rejects_already_resolved_bet() {
+    let (router, pool) = common::app().await;
+
+    let (_, login) = common::post_json(&router, "/api/dev/login", json!({})).await;
+    let jwt = login["token"].as_str().unwrap();
+
+    let group_id = create_group(&router, jwt, "Double Resolve Group").await;
+    let event_id = seed_event(&pool).await;
+    let bet_id = place_pending_bet(&router, jwt, &group_id, &event_id).await;
+
+    // First resolve succeeds.
+    let req = dev_resolve_request(jwt, &bet_id, "home_win");
+    let resp = router.clone().oneshot(req).await.unwrap();
+    assert!(resp.status().is_success());
+
+    // Second resolve: bet is now 'won', not 'pending'.
+    let req = dev_resolve_request(jwt, &bet_id, "draw");
+    let resp = router.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn dev_resolve_bet_rejects_invalid_outcome() {
+    let (router, pool) = common::app().await;
+
+    let (_, login) = common::post_json(&router, "/api/dev/login", json!({})).await;
+    let jwt = login["token"].as_str().unwrap();
+
+    let group_id = create_group(&router, jwt, "Bad Outcome Group").await;
+    let event_id = seed_event(&pool).await;
+    let bet_id = place_pending_bet(&router, jwt, &group_id, &event_id).await;
+
+    let req = dev_resolve_request(jwt, &bet_id, "pizza_party");
+    let resp = router.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+}

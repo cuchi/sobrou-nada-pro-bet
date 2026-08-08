@@ -8,8 +8,8 @@ pub mod events;
 pub mod groups;
 
 // Re-exports so main.rs can use `routes::handler_name`
-pub use auth::{dev_login, google_login, me};
-pub use bets::{create_bet, list_bets};
+pub use auth::{dev_login, google_login, me, patch_me};
+pub use bets::{create_bet, dev_resolve_bet, list_bets};
 pub use events::list_events;
 pub use groups::{
     create_group, get_group, get_invite, join_group, leaderboard, list_my_groups, regenerate_invite,
