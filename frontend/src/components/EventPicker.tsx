@@ -305,14 +305,11 @@ function EventPickerInner({ onSelect, onEventChange, bettedEventIds, resetKey }:
                       {kickoff.text}
                     </span>
                   ) : (
-                    <>
-                      <span className="event-date">
-                        {cardDateFmt.format(new Date(ev.start_time))}
-                      </span>
-                      <span className="event-time">
-                        {cardTimeFmt.format(new Date(ev.start_time))}
-                      </span>
-                    </>
+                    <span className="event-kickoff">
+                      {cardDateFmt.format(new Date(ev.start_time))}
+                      {' · '}
+                      {cardTimeFmt.format(new Date(ev.start_time))}
+                    </span>
                   )}
                 </div>
               </button>
