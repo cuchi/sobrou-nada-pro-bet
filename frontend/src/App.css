@@ -2080,3 +2080,12 @@ th {
     max-width: 0;
   }
 }
+
+
+/* Very narrow phones (≤370px): drop the odds column entirely so the
+   crests + info column can use the full width. */
+@media (max-width: 370px) {
+  .event-odds {
+    display: none;
+  }
+}
