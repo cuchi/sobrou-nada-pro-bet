@@ -181,9 +181,22 @@ fn parse_finished_match(m: &serde_json::Value) -> Option<FinishedMatch> {
     if !completed {
         return None;
     }
-    let scores = &m["scores"];
-    let home = scores["home_score"].as_i64().map(|s| s as i32)?;
-    let away = scores["away_score"].as_i64().map(|s| s as i32)?;
+    // the-odds-api v4 scores shape:
+    //   "scores": [{"name": "<home_team>", "score": "<int_as_string>"}, ...]
+    // Names are matched against `home_team` / `away_team` (case-sensitive
+    // since the API echoes them verbatim). `score` is a string in the
+    // documented payload — parse it as i64 rather than reading as a number.
+    let scores = m["scores"].as_array()?;
+    let home = scores
+        .iter()
+        .find(|s| s["name"].as_str() == Some(home_team.as_str()))
+        .and_then(|s| s["score"].as_str())
+        .and_then(|s| s.parse::<i32>().ok())?;
+    let away = scores
+        .iter()
+        .find(|s| s["name"].as_str() == Some(away_team.as_str()))
+        .and_then(|s| s["score"].as_str())
+        .and_then(|s| s.parse::<i32>().ok())?;
     Some(FinishedMatch {
         external_id,
         home_team,

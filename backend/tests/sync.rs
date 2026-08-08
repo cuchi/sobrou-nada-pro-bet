@@ -3,6 +3,112 @@ mod common;
 use serde_json::json;
 use uuid::Uuid;
 
+/// `parse_finished_match` accepts the v4 the-odds-api `/scores` payload
+/// shape: `scores` is an array of `{name, score}` where `score` is a
+/// string. The parser matches names against `home_team` / `away_team`
+/// (verbatim) so a bet on Flamengo wins against a Vasco prediction when
+/// the API echoes the same strings. Test exercises the full pipeline by
+/// seeding the event so the UPDATE matches a row.
+#[tokio::test]
+async fn parse_finished_match_handles_v4_scores_shape() {
+    let (_router, pool) = common::app().await;
+
+    // Seed the event so the UPDATE in `process_scores` matches a row.
+    let external_id = "v4-shape-match";
+    sqlx::query(
+        "INSERT INTO events (id, external_id, home_team, away_team, championship, start_time, status)
+         VALUES (gen_random_uuid(), $1, 'Grêmio', 'Sao Paulo', 'Brazil Série A', NOW() - INTERVAL '3 hours', 'scheduled')",
+    )
+    .bind(external_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let mock = json!([{
+        "id": external_id,
+        "sport_key": "soccer_brazil_campeonato",
+        "sport_title": "Brazil Série A",
+        "commence_time": "2026-08-08T19:00:00Z",
+        "completed": true,
+        "home_team": "Grêmio",
+        "away_team": "Sao Paulo",
+        "scores": [
+            {"name": "Grêmio", "score": "2"},
+            {"name": "Sao Paulo", "score": "1"}
+        ],
+        "last_update": "2026-08-08T21:20:53Z"
+    }]);
+
+    let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
+        .await
+        .unwrap();
+    let body = result.0;
+    assert_eq!(body["updated_scores"], 1);
+    assert_eq!(body["resolved"], 0);
+
+    // Confirm the row was updated.
+    let scores: (Option<i32>, Option<i32>) =
+        sqlx::query_as("SELECT home_score, away_score FROM events WHERE external_id = $1")
+            .bind(external_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(scores, (Some(2), Some(1)));
+}
+
+/// A completed match with the wrong shapes (object-style scores, missing
+/// score field, non-numeric score) must be skipped via `process_scores`,
+/// not panic.
+#[tokio::test]
+async fn parse_finished_match_skips_malformed_shapes() {
+    let (_router, pool) = common::app().await;
+
+    // Object-style scores — the v3 shape. Parser skips it.
+    let mock = json!([{
+        "id": "v3-shape",
+        "home_team": "A",
+        "away_team": "B",
+        "completed": true,
+        "scores": {"home_score": 1, "away_score": 0}
+    }]);
+    let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
+        .await
+        .unwrap();
+    assert_eq!(result.0["updated_scores"], 0);
+
+    // Completed:false — skipped.
+    let mock = json!([{
+        "id": "not-done",
+        "home_team": "A",
+        "away_team": "B",
+        "completed": false,
+        "scores": [
+            {"name": "A", "score": "0"},
+            {"name": "B", "score": "0"}
+        ]
+    }]);
+    let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
+        .await
+        .unwrap();
+    assert_eq!(result.0["updated_scores"], 0);
+
+    // Score missing the expected team name (diacritic drift) — skipped.
+    let mock = json!([{
+        "id": "wrong-name",
+        "home_team": "Grêmio",
+        "away_team": "Sao Paulo",
+        "completed": true,
+        "scores": [
+            {"name": "Gremio", "score": "2"},
+            {"name": "Sao Paulo", "score": "1"}
+        ]
+    }]);
+    let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
+        .await
+        .unwrap();
+    assert_eq!(result.0["updated_scores"], 0);
+}
+
 #[tokio::test]
 async fn sync_events_from_mock() {
     let (_, pool) = common::app().await;
@@ -93,8 +199,13 @@ async fn resolve_bets_from_mock() {
     // Resolve: Flamengo won 2-0
     let mock = json!([{
         "id": "mock-match-2",
+        "home_team": "Flamengo",
+        "away_team": "Vasco",
         "completed": true,
-        "scores": {"home_score": 2, "away_score": 0}
+        "scores": [
+            {"name": "Flamengo", "score": "2"},
+            {"name": "Vasco", "score": "0"}
+        ]
     }]);
 
     let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
@@ -186,8 +297,13 @@ async fn resolve_bets_skips_opted_out_users() {
 
     let mock = json!([{
         "id": "opt-match",
+        "home_team": "Flamengo",
+        "away_team": "Vasco",
         "completed": true,
-        "scores": {"home_score": 2, "away_score": 0}
+        "scores": [
+            {"name": "Flamengo", "score": "2"},
+            {"name": "Vasco", "score": "0"}
+        ]
     }]);
 
     let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
@@ -341,8 +457,13 @@ async fn resolve_bets_skips_users_with_no_email() {
 
     let mock = json!([{
         "id": "nomail-match",
+        "home_team": "Flamengo",
+        "away_team": "Vasco",
         "completed": true,
-        "scores": {"home_score": 2, "away_score": 0}
+        "scores": [
+            {"name": "Flamengo", "score": "2"},
+            {"name": "Vasco", "score": "0"}
+        ]
     }]);
 
     let result = sobrou_nada_pro_bet::routes::admin::process_scores(&pool, &mock)
