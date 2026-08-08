@@ -90,3 +90,7 @@ jobs:
         run: npm run build
         env:
           VITE_GOOGLE_CLIENT_ID: ci-test-client-id
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm test -- --run
