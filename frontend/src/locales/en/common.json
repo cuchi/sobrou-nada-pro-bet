@@ -182,6 +182,12 @@
     "bettingClosed": "Betting is closed for this match",
     "invalidInviteCode": "Invalid invite code",
     "alreadyInGroup": "You're already in this group",
-    "internal": "Something went wrong. Please try again."
+    "internal": "Something went wrong. Please try again.",
+    "boundaryTitle": "Something went wrong",
+    "boundaryBody": "This widget crashed. The rest of the app is still working — reload to retry.",
+    "boundaryReload": "Reload"
+  },
+  "offline": {
+    "message": "You're offline. Reconnecting..."
   }
 }

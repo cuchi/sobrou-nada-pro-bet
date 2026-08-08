@@ -2,11 +2,20 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatPoints, useActiveLocale } from './Points';
 import EmptyState from './EmptyState';
+import { ErrorBoundary } from './ErrorBoundary';
 import type { Bet } from '../types';
 
 const PAGE_SIZE = 10;
 
 export default function BetList({ bets }: { bets: Bet[] }) {
+  return (
+    <ErrorBoundary scope="BetList">
+      <BetListInner bets={bets} />
+    </ErrorBoundary>
+  );
+}
+
+function BetListInner({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
   const locale = useActiveLocale();
   const [page, setPage] = useState(0);

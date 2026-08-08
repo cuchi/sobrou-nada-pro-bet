@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { createGroup, getInviteCode, joinGroup, translateApiError } from '../api/client';
 import { useToast } from './Toast';
+import { useHotkey } from '../useHotkey';
 import type { Group } from '../types';
 
 interface Props {
@@ -22,6 +23,13 @@ export default function GroupSwitcher({ selectedGroupId, onSelect }: Props) {
   const [loading, setLoading] = useState(false);
 
   const selected = groups.find((g) => g.id === selectedGroupId);
+
+    // Esc dismisses whichever inline form (create / join / invite) is open.
+    useHotkey('Escape', () => {
+      if (groupInvite) setGroupInvite(null);
+      else if (showCreate) setShowCreate(false);
+      else if (showJoin) setShowJoin(false);
+    });
 
   const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;

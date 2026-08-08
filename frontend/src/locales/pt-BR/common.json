@@ -183,6 +183,12 @@
     "bettingClosed": "Apostas encerradas para esta partida",
     "invalidInviteCode": "Código de convite inválido",
     "alreadyInGroup": "Você já faz parte deste grupo",
-    "internal": "Algo deu errado. Tente novamente."
+    "internal": "Algo deu errado. Tente novamente.",
+    "boundaryTitle": "Algo deu errado",
+    "boundaryBody": "Este componente travou. O resto do app continua funcionando — recarregue para tentar de novo.",
+    "boundaryReload": "Recarregar"
+  },
+  "offline": {
+    "message": "Você está offline. Reconectando..."
   }
 }

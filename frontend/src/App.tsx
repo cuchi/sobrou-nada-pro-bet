@@ -14,6 +14,7 @@ import Leaderboard from './components/Leaderboard';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { UserMenu } from './components/UserMenu';
 import EmptyState from './components/EmptyState';
+import { OfflineBanner } from './components/OfflineBanner';
 import { usePolling } from './usePolling';
 import './i18n';
 import './App.css';
@@ -99,6 +100,8 @@ function AppContent() {
           )}
         </div>
       </header>
+
+      <OfflineBanner />
 
       {user && (
         <GroupSwitcher selectedGroupId={selectedGroupId} onSelect={handleGroupSelect} />

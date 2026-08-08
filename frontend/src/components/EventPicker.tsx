@@ -6,6 +6,7 @@ import { kickoffLabel } from '../kickoff';
 import type { Event, EventStatus, Prediction } from '../types';
 import { useActiveLocale } from './Points';
 import EmptyState from './EmptyState';
+import { ErrorBoundary } from './ErrorBoundary';
 import { Spinner } from './Spinner';
 import { usePolling } from '../usePolling';
 
@@ -68,7 +69,15 @@ function isClosed(status: EventStatus): boolean {
   return status !== 'scheduled';
 }
 
-export default function EventPicker({ onSelect, onEventChange, bettedEventIds, resetKey }: Props) {
+export default function EventPicker(props: Props) {
+  return (
+    <ErrorBoundary scope="EventPicker">
+      <EventPickerInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function EventPickerInner({ onSelect, onEventChange, bettedEventIds, resetKey }: Props) {
   const { t } = useTranslation();
   const locale = useActiveLocale();
   const [events, loading] = usePolling<Event[]>(

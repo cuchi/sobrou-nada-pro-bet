@@ -141,7 +141,15 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
               pattern="[0-9]*"
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
-              onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+              onKeyDown={(e) => {
+                // Enter submits the surrounding form (browser default would
+                // already do this for type="submit" buttons, but this input
+                // swallows it because it's not a submit button itself).
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmit(e as unknown as React.FormEvent);
+                }
+              }}
             />
             <button type="submit" disabled={loading} className="btn-place-bet">
               {loading ? t('betForm.placing') : t('betForm.placeBet')}

@@ -184,6 +184,100 @@ body {
   margin: 0;
 }
 
+/* ---- Error boundary fallback ---- */
+
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  margin: 1rem 0;
+}
+
+.error-boundary-icon {
+  width: 2.5em;
+  height: 2.5em;
+  color: var(--red);
+  display: inline-flex;
+  opacity: 0.85;
+}
+
+.error-boundary-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.error-boundary-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--red);
+  margin: 0;
+}
+
+.error-boundary-body {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  max-width: 28rem;
+  margin: 0;
+}
+
+.btn-error-reload {
+  margin-top: 0.5rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  color: var(--text-primary);
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.btn-error-reload:hover {
+  background: var(--bg-hover);
+}
+
+/* ---- Offline banner ---- */
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1rem;
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  animation: fade-in 0.2s ease-out;
+}
+
+.offline-banner-icon {
+  width: 1.2em;
+  height: 1.2em;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.offline-banner-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.offline-banner-text {
+  flex: 1;
+}
+
 
 /* ── Keyframes & one-shot animations ───────────────────────────── */
 /* ---- Animations ---- */

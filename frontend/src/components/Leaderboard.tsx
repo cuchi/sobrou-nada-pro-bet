@@ -2,11 +2,20 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchLeaderboard } from '../api/client';
 import { formatPoints, useActiveLocale } from './Points';
+import { ErrorBoundary } from './ErrorBoundary';
 import type { LeaderboardEntry } from '../types';
 import { Spinner } from './Spinner';
 import { usePolling } from '../usePolling';
 
-export default function Leaderboard({ groupId, refreshKey }: { groupId: string; refreshKey: number }) {
+export default function Leaderboard(props: { groupId: string; refreshKey: number }) {
+  return (
+    <ErrorBoundary scope="Leaderboard">
+      <LeaderboardInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function LeaderboardInner({ groupId, refreshKey }: { groupId: string; refreshKey: number }) {
   const { t } = useTranslation();
   const locale = useActiveLocale();
   const [entries, loading] = usePolling<LeaderboardEntry[]>(
