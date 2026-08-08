@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchEvents } from '../api/client';
 import { getCrestUrl } from '../crests';
@@ -88,6 +88,7 @@ function EventPickerInner({ onSelect, onEventChange, bettedEventIds, resetKey }:
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [query, setQuery] = useState('');
   const [showRecent, setShowRecent] = useState(false);
+  const predictionBarRef = useRef<HTMLDivElement | null>(null);
 
   // Lazy locale-driven formatters — recreated when the active locale flips.
   const recentWhenFmt = useMemo(
@@ -182,6 +183,15 @@ function EventPickerInner({ onSelect, onEventChange, bettedEventIds, resetKey }:
     setPrediction(null);
     onEventChange?.();
   };
+
+  // After the prediction bar mounts (post-selection), scroll it into
+  // view. On mobile the picker grid + prediction bar stack vertically
+  // and the card tap target is far from the pick buttons; auto-scroll
+  // keeps the user from having to hunt. Always-runs is a desktop no-op.
+  useEffect(() => {
+    if (!selectedId) return;
+    predictionBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [selectedId]);
 
   const handlePredictionSelect = (p: Prediction) => {
     setPrediction(p);
@@ -320,7 +330,7 @@ function EventPickerInner({ onSelect, onEventChange, bettedEventIds, resetKey }:
             {!selectedAwaitingResult && selected.status === 'cancelled' && t('eventPicker.closedNotice.cancelled')}
           </p>
         ) : (
-          <div className="prediction-bar">
+          <div className="prediction-bar" ref={predictionBarRef}>
             <span className="prediction-label">{t('eventPicker.predictionBar.yourPick')}</span>
             <button
               type="button"
