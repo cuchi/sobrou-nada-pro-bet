@@ -1883,14 +1883,29 @@ th {
     display: none;
   }
 
-  .odd-badge {
-    width: 2.4rem;
-    padding: 0.1rem 0.25rem;
-    font-size: 0.65rem;
+  /* On narrow screens, the team-name columns are hidden. Force the three
+     remaining columns (crests, odds, info) to fixed widths so they line up
+     vertically across cards regardless of content. */
+  .event-card {
+    grid-template-columns: auto auto auto auto auto;
+  }
+
+  .matchup-core {
+    width: 5.5rem;
+  }
+
+  .event-odds {
+    width: 7.5rem;
   }
 
   .event-info {
-    width: 4.4rem;
+    width: 5rem;
+  }
+
+  .odd-badge {
+    width: 2.2rem;
+    padding: 0.1rem 0.25rem;
+    font-size: 0.65rem;
   }
 
   .event-date,
@@ -2005,8 +2020,22 @@ th {
     gap: 0.3rem 0.4rem;
   }
 
+  /* Slightly smaller fixed columns at <=480px so the three columns still
+     fit in a 360px viewport. */
+  .matchup-core {
+    width: 5.5rem;
+  }
+
+  .event-odds {
+    width: 6.6rem;
+  }
+
+  .event-info {
+    width: 4.6rem;
+  }
+
   .odd-badge {
-    width: 1.5rem;
+    width: 1.9rem;
     padding: 0.05rem 0.15rem;
     font-size: 0.55rem;
   }
@@ -2014,21 +2043,13 @@ th {
   /* Smaller crests + tighter vs-label so the matchup column doesn't crowd
      the odds/info columns. */
   .team-crest {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
   }
 
   .vs-label {
     font-size: 0.65rem;
     margin: 0 0.15rem;
-  }
-
-  /* Let the info column shrink-to-fit so longer pt-BR strings ("AGENDADA",
-     "in 12h 53m", "08/20 09:30 PM") don't force the card to overflow. */
-  .event-info {
-    width: auto;
-    min-width: 0;
-    max-width: 4.2rem;
   }
 
   .event-status-badge {
