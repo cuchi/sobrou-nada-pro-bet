@@ -5,6 +5,7 @@ import { getCrestUrl } from '../crests';
 import { kickoffLabel } from '../kickoff';
 import type { Event, EventStatus, Prediction } from '../types';
 import { useActiveLocale } from './Points';
+import EmptyState from './EmptyState';
 import { Spinner } from './Spinner';
 import { usePolling } from '../usePolling';
 
@@ -243,9 +244,13 @@ export default function EventPicker({ onSelect, onEventChange, bettedEventIds, r
       )}
 
       {upcoming.length === 0 ? (
-        <p className="no-events">{t('eventPicker.noEvents')}</p>
+        <EmptyState icon="ball" title={t('eventPicker.noEvents')} hint={t('eventPicker.noEventsHint')} />
       ) : upcomingFiltered.length === 0 ? (
-        <p className="no-events">{t('eventPicker.noMatchesForQuery', { query })}</p>
+        <EmptyState
+          icon="search"
+          title={t('eventPicker.noMatchesForQueryTitle', { query })}
+          hint={t('eventPicker.noMatchesForQueryHint')}
+        />
       ) : (
         <div className="events-grid">
           {upcomingFiltered.map((ev) => {

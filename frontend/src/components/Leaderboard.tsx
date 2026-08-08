@@ -23,6 +23,9 @@ export default function Leaderboard({ groupId, refreshKey }: { groupId: string; 
       <Spinner label={t('leaderboard.loading')} />
     </div>
   );
+  // A group always has at least one member (the creator), so an empty
+  // leaderboard is unreachable in practice. If the API ever returns []
+  // it's a bug — render nothing rather than a misleading empty state.
   if (!entries || entries.length === 0) return null;
 
   const podium = [

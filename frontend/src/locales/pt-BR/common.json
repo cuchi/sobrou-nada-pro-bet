@@ -2,8 +2,9 @@
   "app": {
     "title": "Sobrou Nada Pro Bet",
     "loginPrompt": "Entre com o Google para apostar",
-    "noGroupsPrompt": "Crie ou entre em um grupo para começar a apostar",
-    "selectGroupPrompt": "Selecione um grupo acima para fazer apostas"
+    "noGroupsPrompt": "Você ainda não está em nenhum grupo",
+    "noGroupsHint": "Crie um grupo para apostar com amigos, ou entre em um com um código de convite.",
+    "selectGroupPrompt": "Escolha um grupo acima para começar a apostar"
   },
   "header": {
     "languageSwitcher": {
@@ -43,7 +44,8 @@
   "betList": {
     "heading_one": "Todas as apostas ({{count}})",
     "heading_other": "Todas as apostas ({{count}})",
-    "empty": "Nenhuma aposta ainda. Faça sua primeira!",
+    "empty": "Nenhuma aposta ainda",
+        "emptyHint": "Escolha uma partida acima e faça sua primeira aposta para começar.",
     "columns": {
       "user": "Usuário",
       "event": "Evento",
@@ -76,8 +78,10 @@
     "heading": "Próximas partidas",
     "searchPlaceholder": "Buscar time...",
     "loading": "Carregando partidas...",
-    "noEvents": "Não há próximas partidas no momento. Volte mais tarde.",
-    "noMatchesForQuery": "Nenhuma partida encontrada para “{{query}}”.",
+    "noEvents": "Sem próximas partidas",
+    "noEventsHint": "Volte mais tarde — novas partidas são adicionadas diariamente.",
+    "noMatchesForQueryTitle": "Nenhuma partida para “{{query}}”",
+    "noMatchesForQueryHint": "Tente um nome de time mais curto, ou limpe a busca para ver tudo.",
     "vs": "vs",
     "recentResults": "Resultados recentes ({{count}})",
     "predictionBar": {

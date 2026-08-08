@@ -13,6 +13,7 @@ import GroupSwitcher from './components/GroupSwitcher';
 import Leaderboard from './components/Leaderboard';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { UserMenu } from './components/UserMenu';
+import EmptyState from './components/EmptyState';
 import { usePolling } from './usePolling';
 import './i18n';
 import './App.css';
@@ -136,11 +137,18 @@ function AppContent() {
             <Leaderboard groupId={selectedGroup.id} refreshKey={tick} />
           </>
         ) : user ? (
-          <p className="login-prompt">
-            {groups.length === 0
-              ? t('app.noGroupsPrompt')
-              : t('app.selectGroupPrompt')}
-          </p>
+          groups.length === 0 ? (
+            <EmptyState
+              icon="groups"
+              title={t('app.noGroupsPrompt')}
+              hint={t('app.noGroupsHint')}
+            />
+          ) : (
+            <EmptyState
+              icon="ball"
+              title={t('app.selectGroupPrompt')}
+            />
+          )
         ) : (
           <p className="login-prompt">{t('app.loginPrompt')}</p>
         )}

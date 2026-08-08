@@ -2,8 +2,9 @@
   "app": {
     "title": "Sobrou Nada Pro Bet",
     "loginPrompt": "Sign in with Google to place bets",
-    "noGroupsPrompt": "Create or join a group to start betting",
-    "selectGroupPrompt": "Select a group above to place bets"
+    "noGroupsPrompt": "You're not in any group yet",
+    "noGroupsHint": "Create a group to bet with friends, or join one with an invite code.",
+    "selectGroupPrompt": "Pick a group above to start betting"
   },
   "header": {
     "languageSwitcher": {
@@ -42,7 +43,8 @@
   },
   "betList": {
     "heading": "All Bets ({{count}})",
-    "empty": "No bets yet. Place your first one!",
+    "empty": "No bets yet",
+        "emptyHint": "Pick an upcoming match above and place your first wager to get started.",
     "columns": {
       "user": "User",
       "event": "Event",
@@ -75,8 +77,10 @@
     "heading": "Upcoming matches",
     "searchPlaceholder": "Search team...",
     "loading": "Loading matches...",
-    "noEvents": "No upcoming matches right now. Check back later.",
-    "noMatchesForQuery": "No matches found for “{{query}}”.",
+    "noEvents": "No upcoming matches",
+    "noEventsHint": "Check back later — new matches are added daily.",
+    "noMatchesForQueryTitle": "No matches for “{{query}}”",
+    "noMatchesForQueryHint": "Try a shorter team name, or clear the search to see everything.",
     "vs": "vs",
     "recentResults": "Recent results ({{count}})",
     "predictionBar": {

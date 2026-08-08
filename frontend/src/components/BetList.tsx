@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatPoints, useActiveLocale } from './Points';
+import EmptyState from './EmptyState';
 import type { Bet } from '../types';
 
 const PAGE_SIZE = 10;
@@ -11,7 +12,15 @@ export default function BetList({ bets }: { bets: Bet[] }) {
   const [page, setPage] = useState(0);
 
   if (bets.length === 0) {
-    return <p className="empty">{t('betList.empty')}</p>;
+    return (
+      <div className="bet-list-empty">
+        <EmptyState
+          icon="ticket"
+          title={t('betList.empty')}
+          hint={t('betList.emptyHint')}
+        />
+      </div>
+    );
   }
 
   const pageCount = Math.max(1, Math.ceil(bets.length / PAGE_SIZE));
