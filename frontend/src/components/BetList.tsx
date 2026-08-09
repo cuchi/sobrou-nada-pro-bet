@@ -8,15 +8,22 @@ import type { Bet, DevResolveOutcome } from '../types';
 
 const PAGE_SIZE = 10;
 
-type SortKey =
-  | 'oddsDesc'
-  | 'oddsAsc'
-  | 'statusAsc'
-  | 'statusDesc'
-  | 'bettedAtDesc'
-  | 'bettedAtAsc'
-  | 'matchTimeDesc'
-  | 'matchTimeAsc';
+type SortField = 'odds' | 'status' | 'bettedAt' | 'matchTime';
+type SortDir = 'asc' | 'desc';
+
+interface ActiveSort {
+  field: SortField;
+  dir: SortDir;
+}
+
+const DEFAULT_SORT: ActiveSort = { field: 'bettedAt', dir: 'desc' };
+
+// 3-state toggle for clickable headers: desc → asc → none (clear).
+function nextSort(current: ActiveSort | null, field: SortField): ActiveSort | null {
+  if (!current || current.field !== field) return { field, dir: 'desc' };
+  if (current.dir === 'desc') return { field, dir: 'asc' };
+  return null;
+}
 
 export default function BetList({
   bets,
@@ -45,7 +52,12 @@ function BetListInner({
   const [resolving, setResolving] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [userFilter, setUserFilter] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>('bettedAtDesc');
+  const [activeSort, setActiveSort] = useState<ActiveSort | null>(null);
+
+  const cycleSort = (field: SortField) => {
+    setPage(0);
+    setActiveSort((current) => nextSort(current, field));
+  };
 
   const users = useMemo(() => {
     const seen = new Map<string, string>();
@@ -64,7 +76,10 @@ function BetListInner({
     [bets, userFilter],
   );
 
-  const sorted = useMemo(() => sortBets(filtered, sortKey), [filtered, sortKey]);
+  const sorted = useMemo(
+      () => sortBets(filtered, activeSort ?? DEFAULT_SORT),
+      [filtered, activeSort],
+    );
 
   if (bets.length === 0) {
     return (
@@ -145,35 +160,6 @@ function BetListInner({
             ))}
           </select>
         </label>
-
-        <label>
-          <span>{t('betList.sort.label')}</span>
-          <select
-            className="group-select"
-            value={sortKey}
-            onChange={(e) => {
-              setPage(0);
-              setSortKey(e.target.value as SortKey);
-            }}
-          >
-            {(
-              [
-                'oddsDesc',
-                'oddsAsc',
-                'statusAsc',
-                'statusDesc',
-                'bettedAtDesc',
-                'bettedAtAsc',
-                'matchTimeDesc',
-                'matchTimeAsc',
-              ] as SortKey[]
-            ).map((k) => (
-              <option key={k} value={k}>
-                {t(`betList.sort.options.${k}`)}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
       <div className="bet-list-table-wrap">
@@ -182,15 +168,39 @@ function BetListInner({
           <tr>
             <th>{t('betList.columns.user')}</th>
             <th>{t('betList.columns.event')}</th>
-            <th>{t('betList.columns.match')}</th>
+            <SortableHeader
+              field="matchTime"
+              label={t('betList.columns.match')}
+              activeSort={activeSort}
+              onSort={cycleSort}
+              t={t}
+            />
             <th>{t('betList.columns.pick')}</th>
             <th>{t('betList.columns.amount')}</th>
-            <th>{t('betList.columns.odds')}</th>
-            <th>{t('betList.columns.status')}</th>
-            <th>{t('betList.columns.bettedAt')}</th>
+            <SortableHeader
+              field="odds"
+              label={t('betList.columns.odds')}
+              activeSort={activeSort}
+              onSort={cycleSort}
+              t={t}
+            />
+            <SortableHeader
+              field="status"
+              label={t('betList.columns.status')}
+              activeSort={activeSort}
+              onSort={cycleSort}
+              t={t}
+            />
+            <SortableHeader
+              field="bettedAt"
+              label={t('betList.columns.bettedAt')}
+              activeSort={activeSort}
+              onSort={cycleSort}
+              t={t}
+            />
             {import.meta.env.DEV && (
-                          <th className="bet-resolve-header">{t('betList.columns.resolve')}</th>
-                        )}
+              <th className="bet-resolve-header">{t('betList.columns.resolve')}</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -401,15 +411,15 @@ function compareId(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-function sortBets(bets: Bet[], key: SortKey): Bet[] {
+function sortBets(bets: Bet[], sort: ActiveSort): Bet[] {
   // Default sort (bettedAtDesc) matches the order the backend returns rows
   // in (`ORDER BY b.created_at DESC`). Skipping the spread + sort in that
   // case avoids an O(N) copy + O(N log N) sort on every render.
-  if (key === 'bettedAtDesc') return bets;
+  if (sort.field === 'bettedAt' && sort.dir === 'desc') return bets;
   const out = bets.slice();
   // Tie-break: newest betted first, then id ascending — keeps order deterministic.
   out.sort((a, b) => {
-    const primary = compareByKey(a, b, key);
+    const primary = compareByKey(a, b, sort);
     if (primary !== 0) return primary;
     const created = compareIsoDesc(a.created_at, b.created_at);
     if (created !== 0) return created;
@@ -418,23 +428,66 @@ function sortBets(bets: Bet[], key: SortKey): Bet[] {
   return out;
 }
 
-function compareByKey(a: Bet, b: Bet, key: SortKey): number {
-  switch (key) {
-    case 'oddsDesc':
-      return b.odds - a.odds;
-    case 'oddsAsc':
-      return a.odds - b.odds;
-    case 'statusAsc':
-      return a.status < b.status ? -1 : a.status > b.status ? 1 : 0;
-    case 'statusDesc':
-      return a.status < b.status ? 1 : a.status > b.status ? -1 : 0;
-    case 'bettedAtDesc':
-      return compareIsoDesc(a.created_at, b.created_at);
-    case 'bettedAtAsc':
-      return compareIso(a.created_at, b.created_at);
-    case 'matchTimeDesc':
-      return compareNullableDesc(a.start_time, b.start_time);
-    case 'matchTimeAsc':
-      return compareNullableAsc(a.start_time, b.start_time);
+function compareByKey(a: Bet, b: Bet, sort: ActiveSort): number {
+  const desc = sort.dir === 'desc';
+  switch (sort.field) {
+    case 'odds':
+      return desc ? b.odds - a.odds : a.odds - b.odds;
+    case 'status':
+      return desc
+        ? a.status < b.status ? 1 : a.status > b.status ? -1 : 0
+        : a.status < b.status ? -1 : a.status > b.status ? 1 : 0;
+    case 'bettedAt':
+      return desc
+        ? compareIsoDesc(a.created_at, b.created_at)
+        : compareIso(a.created_at, b.created_at);
+    case 'matchTime':
+      return desc
+        ? compareNullableDesc(a.start_time, b.start_time)
+        : compareNullableAsc(a.start_time, b.start_time);
   }
+}
+
+function SortableHeader({
+  field,
+  label,
+  activeSort,
+  onSort,
+  t,
+}: {
+  field: SortField;
+  label: string;
+  activeSort: ActiveSort | null;
+  onSort: (field: SortField) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const isActive = activeSort?.field === field;
+  const ariaSort = !isActive
+    ? 'none'
+    : activeSort.dir === 'desc'
+    ? 'descending'
+    : 'ascending';
+  const nextLabel = !isActive
+    ? t('betList.sort.descending')
+    : activeSort.dir === 'desc'
+    ? t('betList.sort.ascending')
+    : t('betList.sort.none');
+  return (
+    <th
+      className={`sortable${isActive ? ' active' : ''}`}
+      aria-sort={ariaSort}
+    >
+      <button
+        type="button"
+        className="sort-header-btn"
+        onClick={() => onSort(field)}
+        title={t('betList.sort.cycleTitle', { label, next: nextLabel })}
+      >
+        <span>{label}</span>
+        <span className="sort-arrow" aria-hidden="true">
+          {isActive ? (activeSort.dir === 'desc' ? '\u25BC' : '\u25B2') : '\u21F5'}
+        </span>
+      </button>
+    </th>
+  );
 }

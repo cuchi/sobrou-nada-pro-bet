@@ -242,27 +242,33 @@ describe('BetList — filter by user', () => {
 });
 
 describe('BetList — sort', () => {
-  function getSortSelect(container: HTMLElement): HTMLSelectElement {
-    const selects = container.querySelectorAll(
-      '.bet-list-controls select',
+  // Find the clickable header button for a given column by walking the
+  // <th> children. Each sortable header renders a <button> with the column
+  // label as its first text node.
+  function clickHeader(container: HTMLElement, label: string) {
+    const headers = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('.sort-header-btn'),
     );
-    // 2 controls: first is user filter, second is sort.
-    return selects[1] as HTMLSelectElement;
+    const btn = headers.find((b) =>
+      b.textContent?.toLowerCase().includes(label.toLowerCase()),
+    );
+    if (!btn) throw new Error(`No sortable header matching "${label}"`);
+    fireEvent.click(btn);
   }
 
-  function getRowIds(container: HTMLElement): string[] {
-    // The user-cell has a title containing the user's name; the bet id
-    // is on the row key but not directly readable. Read the order column
-    // values in column 4 (amount cell) — distinct, monotonic.
-    const rows = container.querySelectorAll('tbody tr');
-    return Array.from(rows).map((r) => r.textContent || '');
+  function getActiveArrow(container: HTMLElement): string {
+    const active = container.querySelector('th.sortable.active .sort-arrow');
+    return (active?.textContent || '').trim();
   }
 
-  it('sorts by odds desc by default? no — default is bettedAtDesc', () => {
+  it('defaults to bettedAt desc (no user sort)', () => {
+    // The default-sort short-circuit trusts that input is already in
+    // `created_at DESC` order (which is what the backend returns), so the
+    // test data must mirror that.
     const bets = [
-      makeBet({ id: 'b1', odds: 1.2, created_at: '2026-08-01T10:00:00Z' }),
       makeBet({ id: 'b2', odds: 5.0, created_at: '2026-08-03T10:00:00Z' }),
       makeBet({ id: 'b3', odds: 3.0, created_at: '2026-08-02T10:00:00Z' }),
+      makeBet({ id: 'b1', odds: 1.2, created_at: '2026-08-01T10:00:00Z' }),
     ];
     const { container } = render(
       <I18nextProvider i18n={i18n}>
@@ -270,75 +276,69 @@ describe('BetList — sort', () => {
       </I18nextProvider>,
     );
 
-    // Default sort is bettedAt desc → b2 (08-03), b3 (08-02), b1 (08-01).
-    expect(getRowIds(container).map((t) => t).join('|')).toContain('08/03');
-  });
-
-  it('sorts by odds descending when sort=oddsDesc', () => {
-    const bets = [
-      makeBet({ id: 'b1', odds: 1.2 }),
-      makeBet({ id: 'b2', odds: 5.0 }),
-      makeBet({ id: 'b3', odds: 3.0 }),
-    ];
-    const { container } = render(
-      <I18nextProvider i18n={i18n}>
-        <BetList bets={bets} />
-      </I18nextProvider>,
-    );
-
-    const sortSel = getSortSelect(container);
-    fireEvent.change(sortSel, { target: { value: 'oddsDesc' } });
-
-    const oddsCells = Array.from(
-      container.querySelectorAll('.odds-cell'),
-    ).map((c) => c.textContent?.trim());
-    expect(oddsCells).toEqual(['5x', '3x', '1.2x']);
-  });
-
-  it('sorts by odds ascending when sort=oddsAsc', () => {
-    const bets = [
-      makeBet({ id: 'b1', odds: 1.2 }),
-      makeBet({ id: 'b2', odds: 5.0 }),
-      makeBet({ id: 'b3', odds: 3.0 }),
-    ];
-    const { container } = render(
-      <I18nextProvider i18n={i18n}>
-        <BetList bets={bets} />
-      </I18nextProvider>,
-    );
-
-    const sortSel = getSortSelect(container);
-    fireEvent.change(sortSel, { target: { value: 'oddsAsc' } });
-
-    const oddsCells = Array.from(
-      container.querySelectorAll('.odds-cell'),
-    ).map((c) => c.textContent?.trim());
-    expect(oddsCells).toEqual(['1.2x', '3x', '5x']);
-  });
-
-  it('sorts by bettedAt ascending when sort=bettedAtAsc', () => {
-    const bets = [
-      makeBet({ id: 'b1', created_at: '2026-08-05T10:00:00Z' }),
-      makeBet({ id: 'b2', created_at: '2026-08-01T10:00:00Z' }),
-      makeBet({ id: 'b3', created_at: '2026-08-03T10:00:00Z' }),
-    ];
-    const { container } = render(
-      <I18nextProvider i18n={i18n}>
-        <BetList bets={bets} />
-      </I18nextProvider>,
-    );
-
-    const sortSel = getSortSelect(container);
-    fireEvent.change(sortSel, { target: { value: 'bettedAtAsc' } });
-
+    // No header is active — the Betted at column shows the inactive arrow.
+    expect(container.querySelectorAll('th.sortable.active').length).toBe(0);
+    // Newest bet first (08-03).
     const dates = Array.from(
       container.querySelectorAll('.betted-at-date'),
     ).map((c) => c.textContent?.trim());
-    // 08/01/2026, 08/03/2026, 08/05/2026 — depending on locale it could
-    // also be 01/08/2026, but the day-month-year ordering is stable.
-    expect(dates[0]).toMatch(/01\/08|08\/01/);
-    expect(dates[1]).toMatch(/03\/08|08\/03/);
-    expect(dates[2]).toMatch(/05\/08|08\/05/);
+    expect(dates[0]).toMatch(/03\/08|08\/03/);
+  });
+
+  it('sorts by odds descending on first click, ascending on second, clears on third', () => {
+    const bets = [
+      makeBet({ id: 'b1', odds: 1.2 }),
+      makeBet({ id: 'b2', odds: 5.0 }),
+      makeBet({ id: 'b3', odds: 3.0 }),
+    ];
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <BetList bets={bets} />
+      </I18nextProvider>,
+    );
+
+    clickHeader(container, 'Odds');
+    expect(
+      Array.from(container.querySelectorAll('.odds-cell')).map((c) =>
+        c.textContent?.trim(),
+      ),
+    ).toEqual(['5x', '3x', '1.2x']);
+    expect(getActiveArrow(container)).toBe('\u25BC');
+
+    clickHeader(container, 'Odds');
+    expect(
+      Array.from(container.querySelectorAll('.odds-cell')).map((c) =>
+        c.textContent?.trim(),
+      ),
+    ).toEqual(['1.2x', '3x', '5x']);
+    expect(getActiveArrow(container)).toBe('\u25B2');
+
+    clickHeader(container, 'Odds');
+    // Cleared → no active header → odds default order (insertion).
+    expect(container.querySelectorAll('th.sortable.active').length).toBe(0);
+  });
+
+  it('clicking a different sortable header switches the active column', () => {
+    const bets = [
+      makeBet({ id: 'b1', odds: 1.2 }),
+      makeBet({ id: 'b2', odds: 5.0 }),
+      makeBet({ id: 'b3', odds: 3.0 }),
+    ];
+    const { container } = render(
+      <I18nextProvider i18n={i18n}>
+        <BetList bets={bets} />
+      </I18nextProvider>,
+    );
+
+    clickHeader(container, 'Odds');
+    expect(container.querySelector('th.sortable.active')?.textContent).toMatch(
+      /Odds/,
+    );
+
+    clickHeader(container, 'Status');
+    const active = container.querySelector('th.sortable.active');
+    expect(active?.textContent).toMatch(/Status/);
+    expect(active?.textContent).not.toMatch(/Odds/);
   });
 
   it('sorts by status', () => {
@@ -353,16 +353,19 @@ describe('BetList — sort', () => {
       </I18nextProvider>,
     );
 
-    const sortSel = getSortSelect(container);
-    fireEvent.change(sortSel, { target: { value: 'statusAsc' } });
-
+    clickHeader(container, 'Status');
     const badges = Array.from(
       container.querySelectorAll('.status-badge'),
     ).map((c) => c.textContent?.trim());
-    // statusAsc = alphabetical: lost, pending, won.
-    expect(badges[0]).toBe(badges[0]); // sanity
-    const sorted = [...badges].sort();
-    expect(badges).toEqual(sorted);
+    // First click sets desc — alphabetical desc: won, pending, lost.
+    expect(badges).toEqual(['Won', 'Pending', 'Lost']);
+
+    clickHeader(container, 'Status');
+    const badges2 = Array.from(
+      container.querySelectorAll('.status-badge'),
+    ).map((c) => c.textContent?.trim());
+    // Second click sets asc — alphabetical asc: lost, pending, won.
+    expect(badges2).toEqual(['Lost', 'Pending', 'Won']);
   });
 
   it('sorts by matchTime and puts nulls last regardless of direction', () => {
@@ -377,19 +380,17 @@ describe('BetList — sort', () => {
       </I18nextProvider>,
     );
 
-    const sortSel = getSortSelect(container);
-    fireEvent.change(sortSel, { target: { value: 'matchTimeAsc' } });
+    clickHeader(container, 'Match');
+    let rows = Array.from(container.querySelectorAll('tbody tr'));
+    expect(
+      rows[rows.length - 1].querySelector('.no-match-time') !== null,
+    ).toBe(true);
 
-    const rows = Array.from(container.querySelectorAll('tbody tr'));
-    const lastRowHasDash =
-      rows[rows.length - 1].querySelector('.no-match-time') !== null;
-    expect(lastRowHasDash).toBe(true);
-
-    fireEvent.change(sortSel, { target: { value: 'matchTimeDesc' } });
-    const rows2 = Array.from(container.querySelectorAll('tbody tr'));
-    const lastRowHasDash2 =
-      rows2[rows2.length - 1].querySelector('.no-match-time') !== null;
-    expect(lastRowHasDash2).toBe(true);
+    clickHeader(container, 'Match');
+    rows = Array.from(container.querySelectorAll('tbody tr'));
+    expect(
+      rows[rows.length - 1].querySelector('.no-match-time') !== null,
+    ).toBe(true);
   });
 
   it('filter + sort compose (filter then sort)', () => {
@@ -405,14 +406,12 @@ describe('BetList — sort', () => {
       </I18nextProvider>,
     );
 
-    const selects = container.querySelectorAll(
+    const userFilter = container.querySelector(
       '.bet-list-controls select',
-    );
-    const userFilter = selects[0] as HTMLSelectElement;
-    const sortSel = selects[1] as HTMLSelectElement;
-
+    ) as HTMLSelectElement;
     fireEvent.change(userFilter, { target: { value: 'u1' } });
-    fireEvent.change(sortSel, { target: { value: 'oddsDesc' } });
+
+    clickHeader(container, 'Odds');
 
     const oddsCells = Array.from(
       container.querySelectorAll('.odds-cell'),

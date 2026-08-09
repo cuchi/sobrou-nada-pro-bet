@@ -1649,6 +1649,55 @@ th {
   white-space: nowrap;
 }
 
+th.sortable {
+  padding: 0;
+}
+
+th.sortable.active {
+  color: var(--text-body);
+}
+
+.sort-header-btn {
+  /* Stretch the button to fill the <th> so the entire header cell is
+     clickable, matching standard table-sort UX. */
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sort-header-btn:hover {
+  color: var(--text-body);
+  background: var(--bg-hover);
+}
+
+.sort-header-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
+.sort-arrow {
+  font-size: 0.7rem;
+  opacity: 0.4;
+  width: 0.85rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+th.sortable.active .sort-arrow {
+  opacity: 1;
+  color: var(--gold);
+}
+
 .empty {
   color: var(--text-dim);
   text-align: center;

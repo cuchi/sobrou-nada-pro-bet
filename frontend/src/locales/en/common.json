@@ -65,17 +65,10 @@
       }
     },
     "sort": {
-      "label": "Sort by",
-      "options": {
-        "oddsDesc": "Odds (high → low)",
-        "oddsAsc": "Odds (low → high)",
-        "statusAsc": "Status (pending → resolved)",
-        "statusDesc": "Status (resolved → pending)",
-        "bettedAtDesc": "Betted at (newest)",
-        "bettedAtAsc": "Betted at (oldest)",
-        "matchTimeDesc": "Match time (latest)",
-        "matchTimeAsc": "Match time (earliest)"
-      }
+      "cycleTitle": "Sort by {{label}} ({{next}})",
+      "ascending": "ascending",
+      "descending": "descending",
+      "none": "no sort"
     },
     "noMatchTime": "—",
     "payoutTooltip": "Payout: {{payout}} pts",
