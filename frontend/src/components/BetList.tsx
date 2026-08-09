@@ -59,8 +59,10 @@ function BetListInner({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [bets]);
 
-  const filtered =
-    userFilter === null ? bets : bets.filter((b) => b.user_id === userFilter);
+  const filtered = useMemo(
+    () => (userFilter === null ? bets : bets.filter((b) => b.user_id === userFilter)),
+    [bets, userFilter],
+  );
 
   const sorted = useMemo(() => sortBets(filtered, sortKey), [filtered, sortKey]);
 
@@ -194,6 +196,7 @@ function BetListInner({
         <tbody>
           {rows.map((bet) => {
             const mt = matchTime(bet.start_time);
+            const ba = bettedAt(bet.created_at);
             return (
               <tr key={bet.id} className={`status-${bet.status}`}>
                 <td className="user-cell">
@@ -247,8 +250,8 @@ function BetListInner({
                   <span className="status-badge">{statusLabel(bet.status)}</span>
                 </td>
                 <td className="betted-at-cell">
-                  <span className="betted-at-date">{bettedAt(bet.created_at).date}</span>
-                  <span className="betted-at-time">{bettedAt(bet.created_at).time}</span>
+                  <span className="betted-at-date">{ba.date}</span>
+                  <span className="betted-at-time">{ba.time}</span>
                 </td>
                 {import.meta.env.DEV && (
                   <td className="bet-resolve-cell">
@@ -332,32 +335,85 @@ function BetListInner({
   );
 }
 
+// Module-level cache for Intl.DateTimeFormat instances. Constructing one is
+// surprisingly expensive (locale data lookup, ICU init), and we previously
+// built fresh ones on every cell render. Reuse across the whole app.
+const dateTimeFormatCache = new Map<
+  string,
+  { date: Intl.DateTimeFormat; time: Intl.DateTimeFormat }
+>();
+function getDateTimeFormats(locale: string): {
+  date: Intl.DateTimeFormat;
+  time: Intl.DateTimeFormat;
+} {
+  let cached = dateTimeFormatCache.get(locale);
+  if (!cached) {
+    cached = {
+      date: new Intl.DateTimeFormat(locale, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+      time: new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
+    dateTimeFormatCache.set(locale, cached);
+  }
+  return cached;
+}
+
 function formatLocalDateTime(
   iso: string,
   locale: string,
 ): { date: string; time: string } {
   const d = new Date(iso);
-  const dateFmt = new Intl.DateTimeFormat(locale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-  const timeFmt = new Intl.DateTimeFormat(locale, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const { date: dateFmt, time: timeFmt } = getDateTimeFormats(locale);
   return { date: dateFmt.format(d), time: timeFmt.format(d) };
 }
 
+// ISO 8601 timestamps are lexically comparable. localeCompare goes through
+// the full ICU collator and is much slower than the plain < / > operators.
+function compareIso(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function compareIsoDesc(a: string, b: string): number {
+  return a < b ? 1 : a > b ? -1 : 0;
+}
+
+function compareNullableAsc(a: string | null, b: string | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1; // nulls last
+  if (b === null) return -1;
+  return compareIso(a, b);
+}
+
+function compareNullableDesc(a: string | null, b: string | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1; // nulls last
+  if (b === null) return -1;
+  return compareIsoDesc(a, b);
+}
+
+function compareId(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function sortBets(bets: Bet[], key: SortKey): Bet[] {
-  const out = [...bets];
+  // Default sort (bettedAtDesc) matches the order the backend returns rows
+  // in (`ORDER BY b.created_at DESC`). Skipping the spread + sort in that
+  // case avoids an O(N) copy + O(N log N) sort on every render.
+  if (key === 'bettedAtDesc') return bets;
+  const out = bets.slice();
   // Tie-break: newest betted first, then id ascending — keeps order deterministic.
   out.sort((a, b) => {
     const primary = compareByKey(a, b, key);
     if (primary !== 0) return primary;
-    const created = b.created_at.localeCompare(a.created_at);
+    const created = compareIsoDesc(a.created_at, b.created_at);
     if (created !== 0) return created;
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    return compareId(a.id, b.id);
   });
   return out;
 }
@@ -369,30 +425,16 @@ function compareByKey(a: Bet, b: Bet, key: SortKey): number {
     case 'oddsAsc':
       return a.odds - b.odds;
     case 'statusAsc':
-      return a.status.localeCompare(b.status);
+      return a.status < b.status ? -1 : a.status > b.status ? 1 : 0;
     case 'statusDesc':
-      return b.status.localeCompare(a.status);
+      return a.status < b.status ? 1 : a.status > b.status ? -1 : 0;
     case 'bettedAtDesc':
-      return b.created_at.localeCompare(a.created_at);
+      return compareIsoDesc(a.created_at, b.created_at);
     case 'bettedAtAsc':
-      return a.created_at.localeCompare(b.created_at);
+      return compareIso(a.created_at, b.created_at);
     case 'matchTimeDesc':
       return compareNullableDesc(a.start_time, b.start_time);
     case 'matchTimeAsc':
       return compareNullableAsc(a.start_time, b.start_time);
   }
-}
-
-function compareNullableAsc(a: string | null, b: string | null): number {
-  if (a === null && b === null) return 0;
-  if (a === null) return 1; // nulls last
-  if (b === null) return -1;
-  return a.localeCompare(b);
-}
-
-function compareNullableDesc(a: string | null, b: string | null): number {
-  if (a === null && b === null) return 0;
-  if (a === null) return 1; // nulls last
-  if (b === null) return -1;
-  return b.localeCompare(a);
 }
