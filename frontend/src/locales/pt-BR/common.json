@@ -51,6 +51,7 @@
     "columns": {
       "user": "Usuário",
       "event": "Evento",
+      "match": "Partida",
       "pick": "Palpite",
       "amount": "Valor",
       "odds": "Odds",
@@ -58,6 +59,26 @@
       "bettedAt": "Apostado em",
       "resolve": "Resolver"
     },
+    "filter": {
+      "user": {
+        "label": "Filtrar por usuário",
+        "all": "Todos os usuários"
+      }
+    },
+    "sort": {
+      "label": "Ordenar por",
+      "options": {
+        "oddsDesc": "Odds (maior → menor)",
+        "oddsAsc": "Odds (menor → maior)",
+        "statusAsc": "Status (pendente → resolvida)",
+        "statusDesc": "Status (resolvida → pendente)",
+        "bettedAtDesc": "Apostado em (mais recente)",
+        "bettedAtAsc": "Apostado em (mais antiga)",
+        "matchTimeDesc": "Horário da partida (mais tarde)",
+        "matchTimeAsc": "Horário da partida (mais cedo)"
+      }
+    },
+    "noMatchTime": "—",
     "payoutTooltip": "Retorno: {{payout}} pts",
         "statuses": {
           "pending": "Pendente",

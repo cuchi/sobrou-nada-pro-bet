@@ -91,6 +91,7 @@ export default function BetForm({ groupId, groupName, balance, bets, onBetCreate
       user_avatar_url: user?.avatar_url || null,
       home_team: selectedEvent.home_team,
       away_team: selectedEvent.away_team,
+      start_time: selectedEvent.start_time,
     };
 
     onBetCreated(optimistic);

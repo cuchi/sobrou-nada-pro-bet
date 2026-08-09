@@ -185,9 +185,9 @@ All five open questions were resolved during planning. Decisions live in the pha
 - [ ] Offline indicator — show when backend is unreachable
 - [ ] Keyboard shortcuts — Enter to submit, Esc to close modals
 
-## 4. Emails 🔲
+## 4. Emails ✅
 
-Transactional emails, gated on user preference. Two trigger types initially.
+Transactional emails, gated on user preference. Two trigger types initially. All shipped; tested live with Mailgun sandbox.
 
 - [x] Pick a provider — Mailgun (env: `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM`)
 - [x] Migration — `users.email_notifications BOOLEAN NOT NULL DEFAULT true`
@@ -197,6 +197,9 @@ Transactional emails, gated on user preference. Two trigger types initially.
 - [x] Respect `email_notifications = false` everywhere
 - [x] All sends fully logged (`tracing::info!` per send, success/failure)
 - [x] Email triggers are idempotent — re-running resolve or sync must not double-send (track `notified_at` or use the resolved timestamp as the dedupe key)
+- [x] **Dev-only single-bet resolver** — `POST /api/dev/resolve-bet` with a 3-button column on `BetList` for dev-only one-click resolves. Runs the same `resolve_event` pipeline as `/admin/bets/resolve` with synthetic scores (1-0 / 1-1 / 0-1).
+
+**Live test**: Mailgun sandbox queued successfully to `paulo@cuchi.me` after fixing `MAILGUN_FROM` to use the sandbox's `postmaster@` address.
 
 Triggering today is manual (admin hits `/admin/bets/resolve`); emails should fire from the same code path so they "just work" once a trigger exists.
 

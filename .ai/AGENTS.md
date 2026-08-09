@@ -37,7 +37,7 @@ Full-stack web application for a cashless betting system (closed beta with frien
 | — | Match card event status label & styling | ✅ Shipped |
 | 10 | Internationalization (en / pt-BR) | 🔲 Phases A–C done (infra, UI strings, kickoff); Phase D (backend error codes) TODO |
 | — | SPA polish (remaining) | 🔲 Todo |
-| — | Emails — bet resolved + new events | 🔲 Todo |
+| — | Emails — bet resolved + new events | ✅ Shipped |
 | — | Hardening — rate limits, security headers, auto-resolve polish | 🔲 Todo |
 
 See **[.ai/PLAN-CURRENT.md](PLAN-CURRENT.md)** for the full remaining roadmap.

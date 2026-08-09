@@ -50,6 +50,7 @@
     "columns": {
       "user": "User",
       "event": "Event",
+      "match": "Match",
       "pick": "Pick",
       "amount": "Amount",
       "odds": "Odds",
@@ -57,6 +58,26 @@
       "bettedAt": "Betted at",
       "resolve": "Resolve"
     },
+    "filter": {
+      "user": {
+        "label": "Filter by user",
+        "all": "All users"
+      }
+    },
+    "sort": {
+      "label": "Sort by",
+      "options": {
+        "oddsDesc": "Odds (high → low)",
+        "oddsAsc": "Odds (low → high)",
+        "statusAsc": "Status (pending → resolved)",
+        "statusDesc": "Status (resolved → pending)",
+        "bettedAtDesc": "Betted at (newest)",
+        "bettedAtAsc": "Betted at (oldest)",
+        "matchTimeDesc": "Match time (latest)",
+        "matchTimeAsc": "Match time (earliest)"
+      }
+    },
+    "noMatchTime": "—",
     "payoutTooltip": "Payout: {{payout}} pts",
         "statuses": {
           "pending": "Pending",

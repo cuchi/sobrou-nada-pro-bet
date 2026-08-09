@@ -46,7 +46,7 @@ pub async fn list_bets(
     let bets: Vec<BetWithUser> = sqlx::query_as(
         r#"SELECT b.*, COALESCE(u.username, u.email) AS user_name, u.email AS user_email,
                   u.avatar_url AS user_avatar_url,
-                  e.home_team, e.away_team
+                  e.home_team, e.away_team, e.start_time
            FROM bets b
            JOIN users u ON u.id = b.user_id
            LEFT JOIN events e ON e.id = b.event_id

@@ -1576,18 +1576,57 @@ header h1 .app-logo + span {
 
 /* ── Bet list (table) ──────────────────────────────────────────── */
 .bet-list {
+  /* The widget itself never scrolls sideways — only the table-wrap below
+     does, so the heading and filter/sort controls stay anchored. */
+}
+
+.bet-list-table-wrap {
+  /* The table can exceed .app's max-width on any viewport (especially with
+     the new Match column). Scroll horizontally only inside this wrap so
+     the rest of the page (and the heading + controls above) never moves. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--border-card) transparent;
 }
 
-.bet-list::-webkit-scrollbar { height: 5px; }
-.bet-list::-webkit-scrollbar-track { background: transparent; }
-.bet-list::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 3px; }
-.bet-list::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+.bet-list-table-wrap::-webkit-scrollbar { height: 5px; }
+.bet-list-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.bet-list-table-wrap::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 3px; }
+.bet-list-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+
+/* The table needs enough room to show all columns legibly (avatar, event,
+   match, pick, amount, odds, status, betted at, [dev resolve]). Below this
+   width the columns would crush, so we force horizontal scroll inside
+   .bet-list-table-wrap instead of squishing. */
+.bet-list table {
+  min-width: 780px;
+}
 
 .bet-list h2 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
+}
+
+.bet-list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.bet-list-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.bet-list-controls .group-select {
+  flex: 0 0 auto;
+  min-width: 140px;
 }
 
 table {
@@ -1701,6 +1740,24 @@ th {
 }
 
 .betted-at-time {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.match-cell {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.match-cell > span {
+  display: block;
+  text-align: center;
+}
+
+.match-time-time {
   color: var(--text-dim);
   font-size: 0.72rem;
 }
@@ -1934,14 +1991,7 @@ th {
     font-size: 0.7rem;
   }
 
-  .bet-list {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .bet-list table {
-    min-width: 680px;
-  }
+  
 
   .leaderboard {
     padding: 1rem;
@@ -1962,6 +2012,22 @@ th {
 
   .event-cell {
     max-width: 120px;
+  }
+
+  /* Dev-only "Resolve" column is wide and meaningless on phones (it only
+     appears when import.meta.env.DEV and is used to drive synthetic scores
+     against the local backend). Hide it on narrow viewports so the real
+     columns — including the new Match column — stay visible without
+     scrolling. */
+  .bet-list tr > .bet-resolve-cell,
+  .bet-list thead .bet-resolve-header {
+    display: none;
+  }
+
+  /* Drop the table's min-width once the dev column is hidden so phones
+     actually fit all remaining columns without scrolling. */
+  .bet-list table {
+    min-width: 0;
   }
 
   .team-crest {

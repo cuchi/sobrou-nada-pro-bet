@@ -17,6 +17,7 @@ export interface Bet {
   user_avatar_url: string | null;
   home_team: string | null;
   away_team: string | null;
+  start_time: string | null;
 }
 
 export interface CreateBetRequest {
