@@ -77,7 +77,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Vite 8 requires Node ^20.19 || >=22.12. Pin to 22 LTS so the
+          # toolchain satisfies the engine spec without tracking 20.x patches.
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
